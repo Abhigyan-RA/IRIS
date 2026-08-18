@@ -1,8 +1,9 @@
 import type { ReactNode } from 'react';
 import { HoldersTable } from '../../../components/institutional/HoldersTable';
 import { TickerPicker } from '../../../components/institutional/TickerPicker';
-import { Panel, SectionLabel } from '../../../components/primitives/Panel';
-import { ApiError, getHolders, type Holders } from '../../../lib/api';
+import { SectionLabel } from '../../../components/primitives/Panel';
+import { FailureNotice } from '../../../components/feedback/FailureNotice';
+import { getHolders, type Holders } from '../../../lib/api';
 
 /** Shown when the reader arrives without choosing a stock. */
 const DEFAULT_TICKER = 'NVDA';
@@ -34,15 +35,12 @@ export default async function InstitutionalPage({
   const ticker = (Array.isArray(requested) ? requested[0] : requested) ?? DEFAULT_TICKER;
 
   let holders: Holders | null = null;
-  let failure: string | null = null;
+  let failure: unknown = null;
 
   try {
     holders = await getHolders(ticker);
   } catch (error) {
-    failure =
-      error instanceof ApiError
-        ? error.message
-        : 'Holdings could not be loaded for an unexpected reason.';
+    failure = error;
   }
 
   return (
@@ -53,12 +51,7 @@ export default async function InstitutionalPage({
       </div>
 
       {holders === null ? (
-        <Panel className="p-6">
-          <p className="text-sm text-warn">{failure}</p>
-          <p className="mt-1 text-sm text-ink-faint">
-            Check that the API is running and that filings have been collected.
-          </p>
-        </Panel>
+        <FailureNotice heading={`Holdings in ${ticker.toUpperCase()}`} error={failure} />
       ) : (
         <HoldersTable holders={holders} />
       )}

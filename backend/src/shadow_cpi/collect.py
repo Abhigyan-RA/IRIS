@@ -23,9 +23,14 @@ from shadow_cpi.db.timescale.repositories import (
     TimescalePriceRepository,
 )
 from shadow_cpi.ingestion.base import IngestionContext
+from shadow_cpi.ingestion.changes import HistoryChangeCalculator
 from shadow_cpi.ingestion.http import HttpxClient
 from shadow_cpi.ingestion.registry import default_registry
-from shadow_cpi.orchestration.collector import CollectionOutcome, CollectionService
+from shadow_cpi.orchestration.collector import (
+    CollectionOutcome,
+    CollectionService,
+    CollectionStores,
+)
 from shadow_cpi.runtime import bootstrap
 
 
@@ -92,9 +97,14 @@ async def _collect(  # pragma: no cover - needs live databases
             context=IngestionContext(
                 http=http, settings=settings, events=TimescaleHealthEventRepository(executor)
             ),
-            prices=TimescalePriceRepository(executor),
-            holdings=TimescaleHoldingsRepository(executor),
-            events=TimescaleHealthEventRepository(executor),
+            stores=CollectionStores(
+                prices=TimescalePriceRepository(executor),
+                holdings=TimescaleHoldingsRepository(executor),
+                events=TimescaleHealthEventRepository(executor),
+            ),
+            # Most pages publish a daily change and no weekly one, so the weekly figure is
+            # worked out from the readings already stored.
+            changes=HistoryChangeCalculator(TimescalePriceRepository(executor)),
         )
 
         outcomes = (

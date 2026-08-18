@@ -121,6 +121,15 @@ It offers five tools: `get_commodity_price_trend`, `analyze_supply_chain_impact`
 `get_institutional_holders`, `check_data_freshness`, and `ask_shadow_cpi_copilot`.
 Run it with the same environment as the API, since it reads the same databases.
 
+### What the copilot will and will not answer
+
+Every answer is built from stored records and cites them. A question naming an entity is
+answered from that entity's history; a question naming none, such as "what moved most this
+week", is answered from every tracked price rather than refused on the technicality that no
+name was spelled out. Where a figure has not been collected, the answer says so instead of
+estimating: asked about a weekly move before a week of readings exists, it reports that the
+weekly change is not available and gives the daily one.
+
 ## Collecting data
 
 Nothing appears on the dashboard until a source has run. Collect once, now:
@@ -150,6 +159,34 @@ What works with which credentials:
 
 A source that cannot run is skipped and says so, rather than failing quietly. Every run,
 including a skip, is visible on the pipeline health screen.
+
+### What gets stored, and what does not
+
+A collected page is rarely one number. The container freight page publishes a global index and
+a price for each of a dozen trade lanes; the oil page lists several benchmarks. Two rules decide
+what is kept, and both come from looking at what the collectors actually return:
+
+- **A value that differs per row is stored under its own name.** Each freight lane becomes its
+  own tracked entity, such as `FBX03_China_to_North_America_East_Coast`, because an importer
+  cares what their route costs rather than what the average costs.
+- **A value repeated across rows is stored once.** The oil page shows six benchmark links but
+  the same price beside all of them, so storing one per benchmark would claim Brent trades at
+  WTI's price. Repeats are collected once and the run reports one price, not six.
+
+Most pages publish a daily change and no weekly one. The weekly figure is worked out from the
+readings already stored, once enough of them exist, and a figure the page published itself is
+never overwritten. Until there is history to compare against, a change stays empty and the
+screen says so rather than showing a confident zero.
+
+### When something goes wrong on screen
+
+Every failure is described in one place and in plain language: what happened, what the reader
+can do, and whether trying again could help. A stopped API says the service cannot be reached
+and how to start it; a missing entity says nothing has been recorded for it yet; a reply that
+does not match the schema says the dashboard and API are different versions. The underlying
+error is kept behind a "Technical detail" disclosure and written to the console, so debugging
+loses nothing. Failures that empty a screen are explained in place, and failures a reader can
+ignore appear as a notice that does not disappear on a timer.
 
 ### Building a scraper for a site that blocks readers
 

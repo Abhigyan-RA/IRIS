@@ -1,36 +1,59 @@
 /* eslint-disable react/forbid-dom-props --
-   A marker's position on the map is data, not styling: the coordinates come from the
-   region table and vary per entry, which no utility class can express. This is the
-   exception the project's styling rule allows for. */
+   A marker's position is data, not styling: it is the projected coordinate of the region the
+   price belongs to, and varies per entry, which no utility class can express. */
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import type { RiskMapEntry } from '../../lib/api';
 import { Delta } from '../primitives/Delta';
 import { Panel, SectionLabel } from '../primitives/Panel';
+import { MAP_HEIGHT, MAP_WIDTH, WorldMap, projectToMap } from './WorldMap';
 import { moveSeverity } from './TopMovers';
 
 /**
- * Where each region sits on the map, as a percentage of the panel's width and
- * height.
+ * Where a global benchmark is drawn: the mid-Atlantic, away from the regional markers.
  *
- * The design shows markers pinned over continents. Rather than ship a projection
- * library and coordinate data for a picture with five pins on it, each region is
- * given a position once, here. Adding a region means adding a line.
+ * A container index covering every trade lane has no single home, and putting it over one
+ * continent would imply a precision the figure does not have.
  */
-export const REGION_POSITIONS: Record<string, { left: string; top: string }> = {
-  'North America': { left: '18%', top: '30%' },
-  Europe: { left: '48%', top: '24%' },
-  'Asia Pacific': { left: '76%', top: '38%' },
-  'South America': { left: '30%', top: '68%' },
-  Africa: { left: '52%', top: '58%' },
-  Global: { left: '50%', top: '46%' },
+export const GLOBAL_COORDINATES = { longitude: -35, latitude: 25 };
+
+/**
+ * Where each region sits, in longitude and latitude.
+ *
+ * Real coordinates rather than percentages of a panel, so a marker lands over the place it
+ * describes and stays there when the panel is resized.
+ */
+export const REGION_COORDINATES: Record<string, { longitude: number; latitude: number }> = {
+  'North America': { longitude: -98, latitude: 39 },
+  Europe: { longitude: 10, latitude: 50 },
+  'Asia Pacific': { longitude: 114, latitude: 30 },
+  'South America': { longitude: -58, latitude: -15 },
+  Africa: { longitude: 20, latitude: 2 },
+  'Middle East': { longitude: 45, latitude: 25 },
+  Global: GLOBAL_COORDINATES,
 };
 
-const SEVERITY_STYLE: Record<ReturnType<typeof moveSeverity>, string> = {
-  spike: 'border-rise text-rise',
-  easing: 'border-fall text-fall',
-  steady: 'border-hairline-strong text-ink-muted',
+const SEVERITY_STYLE: Record<ReturnType<typeof moveSeverity>, { dot: string; ring: string }> = {
+  spike: { dot: 'fill-rise', ring: 'stroke-rise' },
+  easing: { dot: 'fill-fall', ring: 'stroke-fall' },
+  steady: { dot: 'fill-accent', ring: 'stroke-accent' },
 };
+
+/**
+ * Spread markers that share a region so they do not sit on top of each other.
+ *
+ * Several tracked entities are global, and drawing them at one point would hide all but the
+ * last. They are fanned out around the region's coordinate instead.
+ *
+ * @param index - Position of this marker among those sharing the region.
+ * @returns Offset in map units.
+ */
+function fanOut(index: number): { dx: number; dy: number } {
+  const step = 46;
+  const row = Math.floor(index / 2);
+  const column = index % 2;
+  return { dx: column === 0 ? -step : step, dy: row * 40 - 20 };
+}
 
 /**
  * Props for {@link RiskMapPanel}.
@@ -43,17 +66,17 @@ export interface RiskMapPanelProps {
 }
 
 /**
- * The world map with a marker over each region that has moved.
+ * The world map, with a marker over each region that has moved.
  *
- * The map is the landing view because it answers "where did something change"
- * before the reader asks anything. Markers are ordinary links, so the whole screen
- * is reachable by keyboard, and each one states its region, price, and change in
- * text rather than relying on position and colour.
+ * The map is the landing view because it answers "where did something change" before the
+ * reader asks anything. Markers are ordinary links, so the whole screen works by keyboard,
+ * and each one states its region, price, and change in text rather than relying on position
+ * and colour.
  *
  * @param props - The entries to pin and how many.
  * @returns The map panel.
  */
-export function RiskMapPanel({ entries, limit = 5 }: RiskMapPanelProps): ReactNode {
+export function RiskMapPanel({ entries, limit = 6 }: RiskMapPanelProps): ReactNode {
   const pinned = [...entries]
     .sort(
       (left, right) =>
@@ -62,54 +85,72 @@ export function RiskMapPanel({ entries, limit = 5 }: RiskMapPanelProps): ReactNo
     )
     .slice(0, limit);
 
+  const usedPerRegion = new Map<string, number>();
+
   return (
     <section aria-labelledby="risk-map-heading" className="space-y-3">
       <SectionLabel tone="primary">
         <span id="risk-map-heading">Global risk map</span>
       </SectionLabel>
 
-      <Panel className="relative h-[26rem] overflow-hidden bg-panel-raised">
-        {/* The land mass behind the markers is decorative: the information is in the
-            markers, so it is hidden from assistive technology rather than described. */}
-        <div
-          aria-hidden="true"
-          className="absolute inset-0 bg-[radial-gradient(circle_at_30%_35%,rgba(148,163,184,0.10),transparent_45%),radial-gradient(circle_at_70%_45%,rgba(148,163,184,0.08),transparent_40%)]"
-        />
+      <Panel className="relative overflow-hidden bg-panel-raised p-2">
+        <div className="relative aspect-[960/500] w-full">
+          <WorldMap />
 
-        {pinned.length === 0 ? (
-          <p className="absolute inset-0 flex items-center justify-center text-sm text-ink-faint">
-            No prices have been collected yet. Markers appear as sources report.
-          </p>
-        ) : (
-          <ul className="absolute inset-0">
-            {pinned.map((entry) => {
-              const position = REGION_POSITIONS[entry.region] ?? REGION_POSITIONS.Global;
-              const severity = moveSeverity(entry);
-              return (
-                <li
-                  key={`${entry.sector}-${entry.entity_name}`}
-                  className="absolute -translate-x-1/2 -translate-y-1/2"
-                  style={{ left: position?.left, top: position?.top }}
-                >
-                  <Link
-                    href={`/ripple/${encodeURIComponent(entry.entity_name)}`}
-                    className={`block rounded-card border bg-panel/90 px-3 py-2 shadow-marker ${SEVERITY_STYLE[severity]}`}
+          {pinned.length === 0 ? (
+            <p className="absolute inset-0 flex items-center justify-center text-sm text-ink-faint">
+              No prices have been collected yet. Markers appear as sources report.
+            </p>
+          ) : (
+            <ul className="absolute inset-0">
+              {pinned.map((entry) => {
+                const coordinates = REGION_COORDINATES[entry.region] ?? GLOBAL_COORDINATES;
+                const point = projectToMap(coordinates.longitude, coordinates.latitude);
+                const taken = usedPerRegion.get(entry.region) ?? 0;
+                usedPerRegion.set(entry.region, taken + 1);
+                const offset = fanOut(taken);
+                const severity = moveSeverity(entry);
+
+                // Positions are percentages of the map's own coordinate space, so a marker
+                // stays over its region at any panel size.
+                const left = (((point?.x ?? 0) + offset.dx) / MAP_WIDTH) * 100;
+                const top = (((point?.y ?? 0) + offset.dy) / MAP_HEIGHT) * 100;
+
+                return (
+                  <li
+                    key={`${entry.sector}-${entry.entity_name}`}
+                    className="absolute -translate-x-1/2 -translate-y-1/2"
+                    style={{ left: `${String(left)}%`, top: `${String(top)}%` }}
                   >
-                    <span className="flex items-center gap-2">
-                      <span className="text-label text-ink-muted uppercase">
-                        {entry.region}: {entry.entity_name}
+                    <Link
+                      href={`/ripple/${encodeURIComponent(entry.entity_name)}`}
+                      className={`block rounded-card border bg-panel/95 px-2.5 py-1.5 shadow-marker ${
+                        severity === 'spike'
+                          ? 'border-rise'
+                          : severity === 'easing'
+                            ? 'border-fall'
+                            : 'border-hairline-strong'
+                      }`}
+                    >
+                      <span className="flex items-center gap-2">
+                        <svg aria-hidden="true" className="h-2 w-2 shrink-0" viewBox="0 0 8 8">
+                          <circle cx="4" cy="4" r="3" className={SEVERITY_STYLE[severity].dot} />
+                        </svg>
+                        <span className="text-label text-ink-muted uppercase">
+                          {entry.region}: {entry.entity_name}
+                        </span>
+                        <Delta value={entry.pct_change_1d} />
                       </span>
-                      <Delta value={entry.pct_change_1d} />
-                    </span>
-                    <span className="tabular mt-1 block text-base text-ink">
-                      {entry.price} {entry.currency}/{entry.unit}
-                    </span>
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
-        )}
+                      <span className="tabular mt-0.5 block text-sm text-ink">
+                        {entry.price} {entry.currency}/{entry.unit}
+                      </span>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
       </Panel>
     </section>
   );

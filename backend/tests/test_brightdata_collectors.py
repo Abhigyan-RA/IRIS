@@ -200,6 +200,111 @@ class TestScrapedPriceIngestor:
         assert result.prices[0].pct_change_1d == Decimal("1.65")
 
     @pytest.mark.asyncio
+    async def test_a_repeated_headline_value_is_collected_once(self) -> None:
+        """A page listing many trade lanes repeats the same index value on every row."""
+        rows = [
+            {"fbx_global_index_value": {"value": 3690}, "fbx_global_index_percent_change": "+2.3%"},
+            {"fbx_global_index_value": {"value": 3690}, "fbx_global_index_percent_change": "+2.3%"},
+            {"fbx_global_index_value": {"value": 3690}, "fbx_global_index_percent_change": "+2.3%"},
+        ]
+        fbx = SCRAPED_SOURCES["fbx_scraper"]
+        context = IngestionContext(http=UnusedHttpClient(), settings=SETTINGS)
+        ingestor = ScrapedPriceIngestor(context, source=fbx, runner=FakeRunner(rows))
+
+        result = await ingestor.ingest()
+
+        assert len(result.prices) == 1
+        assert result.prices[0].price == Decimal("3690")
+        assert result.prices[0].pct_change_1d == Decimal("2.3")
+
+    @pytest.mark.asyncio
+    async def test_genuinely_different_values_are_all_kept(self) -> None:
+        rows = [
+            {"price": {"value": 4.52}, "price_change_percent": "1.8"},
+            {"price": {"value": 4.60}, "price_change_percent": "2.1"},
+        ]
+
+        result = await _ingestor(rows).ingest()
+
+        assert [price.price for price in result.prices] == [Decimal("4.52"), Decimal("4.60")]
+
+    @pytest.mark.asyncio
+    async def test_a_per_row_value_is_stored_under_a_name_read_from_the_row(self) -> None:
+        """The freight page repeats one headline index but prices each lane separately."""
+        rows = [
+            {
+                "fbx_global_index_value": {"value": 3690},
+                "fbx_global_index_percent_change": "+2.3%",
+                "fbx01_value": {"value": 9421.8},
+                "product_page_url": (
+                    "https://www.freightos.com/enterprise/terminal/"
+                    "fbx-03-china-to-north-america-east-coast/"
+                ),
+            },
+            {
+                "fbx_global_index_value": {"value": 3690},
+                "fbx_global_index_percent_change": "+2.3%",
+                "fbx01_value": {"value": 432},
+                "product_page_url": (
+                    "https://www.freightos.com/enterprise/terminal/fbx-14-mediterranean-to-china/"
+                ),
+            },
+        ]
+        fbx = SCRAPED_SOURCES["fbx_scraper"]
+        context = IngestionContext(http=UnusedHttpClient(), settings=SETTINGS)
+        ingestor = ScrapedPriceIngestor(context, source=fbx, runner=FakeRunner(rows))
+
+        result = await ingestor.ingest()
+
+        by_name = {price.entity_name: price for price in result.prices}
+        assert by_name["FBX_Global"].price == Decimal("3690")
+        assert by_name["FBX03_China_to_North_America_East_Coast"].price == Decimal("9421.8")
+        assert by_name["FBX14_Mediterranean_to_China"].price == Decimal("432")
+
+    @pytest.mark.asyncio
+    async def test_a_lane_carries_the_page_it_was_read_from(self) -> None:
+        rows = [
+            {
+                "fbx01_value": {"value": 432},
+                "product_page_url": (
+                    "https://www.freightos.com/enterprise/terminal/fbx-14-mediterranean-to-china/"
+                ),
+            },
+        ]
+        fbx = SCRAPED_SOURCES["fbx_scraper"]
+        context = IngestionContext(http=UnusedHttpClient(), settings=SETTINGS)
+        ingestor = ScrapedPriceIngestor(context, source=fbx, runner=FakeRunner(rows))
+
+        result = await ingestor.ingest()
+
+        lane = next(price for price in result.prices if price.entity_name.startswith("FBX14"))
+        assert lane.source_url == fbx.url
+        assert lane.source_name == "fbx.freightos.com"
+        assert lane.unit == fbx.unit
+
+    @pytest.mark.asyncio
+    async def test_a_row_without_a_usable_lane_name_is_left_alone(self) -> None:
+        """Without a name there is nothing to store a lane under, so only the index is kept."""
+        rows = [{"fbx_global_index_value": {"value": 3690}, "fbx01_value": {"value": 432}}]
+        fbx = SCRAPED_SOURCES["fbx_scraper"]
+        context = IngestionContext(http=UnusedHttpClient(), settings=SETTINGS)
+        ingestor = ScrapedPriceIngestor(context, source=fbx, runner=FakeRunner(rows))
+
+        result = await ingestor.ingest()
+
+        assert [price.entity_name for price in result.prices] == ["FBX_Global"]
+
+    @pytest.mark.asyncio
+    async def test_a_source_that_declares_no_series_stores_only_its_headline(self) -> None:
+        rows = [
+            {"price": {"value": 4.52}, "product_page_url": "https://example.com/futures/brent/"},
+        ]
+
+        result = await _ingestor(rows).ingest()
+
+        assert [price.entity_name for price in result.prices] == ["Copper"]
+
+    @pytest.mark.asyncio
     async def test_the_configured_collector_is_the_one_that_runs(self) -> None:
         runner = FakeRunner([{"price": "4.52"}])
         context = IngestionContext(http=UnusedHttpClient(), settings=SETTINGS)

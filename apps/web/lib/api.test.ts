@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   API_BASE_URL,
   ApiError,
+  SchemaError,
   askCopilot,
   fetchFromApi,
   getHealthFeed,
@@ -214,6 +215,8 @@ describe('endpoint helpers', () => {
   it('rejects a copilot reply that is missing its sources list', async () => {
     mockFetch({ json: () => Promise.resolve({ answer: 'Copper is up.' }) });
 
-    await expect(askCopilot('what is copper doing')).rejects.toBeInstanceOf(ApiError);
+    // A schema mismatch is its own kind of failure: retrying cannot fix a version
+    // difference, so it is distinguished from a request that simply did not succeed.
+    await expect(askCopilot('what is copper doing')).rejects.toBeInstanceOf(SchemaError);
   });
 });

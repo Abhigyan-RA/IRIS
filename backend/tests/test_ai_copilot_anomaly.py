@@ -153,6 +153,37 @@ class TestGrounding:
         assert answer.sources
 
     @pytest.mark.asyncio
+    async def test_a_general_question_retrieves_the_whole_market(self) -> None:
+        """A question naming no entity, such as what moved most this week, must answer."""
+        model = ScriptedModel(["Freight rose most."])
+        copilot = _copilot(
+            model,
+            prices=FakePriceReader(
+                by_sector={
+                    Sector.METALS: [_price("Copper")],
+                    Sector.FREIGHT: [_price("FBX_Global", price="3690")],
+                }
+            ),
+        )
+
+        answer = await copilot.ask("What commodities moved most this week?")
+
+        assert answer.answer == "Freight rose most."
+        prompt = model.text_calls[0][1]
+        assert "Copper" in prompt
+        assert "FBX_Global" in prompt
+
+    @pytest.mark.asyncio
+    async def test_a_greeting_still_gets_the_market_rather_than_a_refusal(self) -> None:
+        model = ScriptedModel(["Here is what is tracked."])
+        copilot = _copilot(model, prices=FakePriceReader(by_sector={Sector.METALS: [_price()]}))
+
+        answer = await copilot.ask("what is going on")
+
+        assert answer.answer == "Here is what is tracked."
+        assert model.text_calls
+
+    @pytest.mark.asyncio
     async def test_the_retrieved_prices_are_put_in_the_prompt(self) -> None:
         """The model must answer from supplied data, so the data has to be there."""
         model = ScriptedModel(["Copper is up."])

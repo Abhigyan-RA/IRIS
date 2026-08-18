@@ -48,7 +48,7 @@ export const NoData: Story = {
 /** The model is unavailable or over its daily cap. */
 export const Failing: Story = {
   args: {
-    ask: () => Promise.reject(new ApiError('The daily model call cap has been reached')),
+    ask: () => Promise.reject(new ApiError(503, 'The daily model call cap has been reached')),
   },
 };
 

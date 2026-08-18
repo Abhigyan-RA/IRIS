@@ -139,8 +139,10 @@ export type HealthFeed = z.infer<typeof healthFeedSchema>;
 export type HealthEvent = HealthFeed['events'][number];
 export type CopilotAnswer = z.infer<typeof copilotAnswerSchema>;
 
-/** Raised when the API cannot be reached or answers with something unusable. */
-export class ApiError extends Error {}
+// Re-exported so callers import their errors from the client they call, while the
+// reader-facing wording for each one lives in a single module.
+export { ApiError, SchemaError } from './failures';
+import { ApiError, SchemaError } from './failures';
 
 /**
  * Fetch a path from the API and validate the reply.
@@ -166,16 +168,20 @@ export async function fetchFromApi<Output>(
       ...init,
     });
   } catch (error) {
-    throw new ApiError(`Could not reach the API at ${path}: ${String(error)}`);
+    // Status zero means the request never got a reply at all, which is a stopped or
+    // unreachable service rather than a refusal.
+    throw new ApiError(0, `Could not reach the API at ${path}: ${String(error)}`);
   }
 
   if (!response.ok) {
-    throw new ApiError(`API returned ${String(response.status)} for ${path}`);
+    throw new ApiError(response.status, `API returned ${String(response.status)} for ${path}`);
   }
 
   const parsed = schema.safeParse(await response.json());
   if (!parsed.success) {
-    throw new ApiError(`API reply for ${path} did not match the expected shape`);
+    throw new SchemaError(
+      `API reply for ${path} did not match the expected shape: ${parsed.error.message}`,
+    );
   }
   return parsed.data;
 }

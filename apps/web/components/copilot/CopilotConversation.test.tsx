@@ -109,7 +109,7 @@ describe('CopilotConversation', () => {
   it('reports a failure as an alert rather than silently doing nothing', async () => {
     const ask = vi
       .fn()
-      .mockRejectedValue(new ApiError('The daily model call cap has been reached'));
+      .mockRejectedValue(new ApiError(503, 'The daily model call cap has been reached'));
     render(<CopilotConversation ask={ask} />);
 
     await userEvent.type(screen.getByLabelText('Your question'), 'what is copper doing');
@@ -124,7 +124,7 @@ describe('CopilotConversation', () => {
     const ask = vi
       .fn()
       .mockResolvedValueOnce(answer())
-      .mockRejectedValueOnce(new ApiError('model unavailable'));
+      .mockRejectedValueOnce(new ApiError(503, 'model unavailable'));
     render(<CopilotConversation ask={ask} />);
 
     await userEvent.type(screen.getByLabelText('Your question'), 'first question');

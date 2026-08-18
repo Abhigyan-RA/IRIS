@@ -3,15 +3,16 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 
 import pytest
 
 from shadow_cpi.config import build_settings
 from shadow_cpi.ingestion.base import IngestionContext, IngestionResult
+from shadow_cpi.ingestion.changes import HistoryChangeCalculator
 from shadow_cpi.ingestion.registry import SourceRegistry
-from shadow_cpi.orchestration.collector import CollectionService
+from shadow_cpi.orchestration.collector import CollectionService, CollectionStores
 from shadow_cpi.shared import (
     CommodityPrice,
     IngestionMethod,
@@ -200,9 +201,11 @@ def _service(
     service = CollectionService(
         registry=registry,
         context=IngestionContext(http=UnusedHttpClient(), settings=SETTINGS),
-        prices=price_writer,  # type: ignore[arg-type]
-        holdings=holding_writer,  # type: ignore[arg-type]
-        events=event_writer,  # type: ignore[arg-type]
+        stores=CollectionStores(
+            prices=price_writer,  # type: ignore[arg-type]
+            holdings=holding_writer,  # type: ignore[arg-type]
+            events=event_writer,  # type: ignore[arg-type]
+        ),
     )
     return service, price_writer, holding_writer, event_writer  # type: ignore[return-value]
 
@@ -295,6 +298,45 @@ class TestRunningOneSource:
 
         assert outcome.error is not None
         assert "not_a_source" in outcome.error
+
+
+class TestFillingInChangesBeforeStoring:
+    @pytest.mark.asyncio
+    async def test_a_change_worked_out_from_history_is_what_gets_stored(self) -> None:
+        """The stored row carries the change, so every reader of it agrees on the figure."""
+        registry = SourceRegistry()
+        registry.register(PriceSource.source_id, PriceSource)
+        writer = RecordingPriceWriter()
+
+        class WeekOldHistory:
+            async def price_history(self, entity_name: str, days: int) -> list[CommodityPrice]:
+                week_ago = _price().model_copy(
+                    update={"price": Decimal("4.00"), "recorded_at": NOW - timedelta(days=7)}
+                )
+                return [week_ago]
+
+        service = CollectionService(
+            registry=registry,
+            context=IngestionContext(http=UnusedHttpClient(), settings=SETTINGS),
+            stores=CollectionStores(
+                prices=writer,  # type: ignore[arg-type]
+                holdings=RecordingHoldingsWriter(),  # type: ignore[arg-type]
+                events=RecordingEventWriter(),  # type: ignore[arg-type]
+            ),
+            changes=HistoryChangeCalculator(WeekOldHistory()),
+        )
+
+        await service.run_source(PriceSource.source_id)
+
+        assert writer.written[0].pct_change_7d == Decimal("13.00")
+
+    @pytest.mark.asyncio
+    async def test_without_a_calculator_only_what_the_source_said_is_stored(self) -> None:
+        service, writer, _, _ = _service(PriceSource)
+
+        await service.run_source(PriceSource.source_id)
+
+        assert writer.written[0].pct_change_7d is None
 
 
 class TestRunningEverySource:

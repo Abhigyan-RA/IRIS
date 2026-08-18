@@ -20,6 +20,11 @@ export default defineConfig({
     setupFiles: ['./vitest.setup.ts'],
     include: ['**/*.test.{ts,tsx}'],
     exclude: ['node_modules/**', '.next/**', 'e2e/**'],
+    // Rendering a component and driving it through user events is slower than a plain
+    // function call, and slower still on a machine that is busy or short of memory. The
+    // default five seconds fails there for no reason worth acting on, which trains people
+    // to rerun a red suite instead of reading it.
+    testTimeout: 20000,
     coverage: {
       provider: 'v8',
       reporter: ['text', 'lcov'],

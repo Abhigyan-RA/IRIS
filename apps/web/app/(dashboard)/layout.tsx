@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { AppShell } from '../../components/shell/AppShell';
+import { ToastProvider } from '../../components/feedback/Toast';
 
 /**
  * Props for the dashboard layout.
@@ -16,9 +17,16 @@ interface DashboardLayoutProps {
  * and stay put while the reader moves between screens, rather than being torn down
  * and rebuilt on each navigation.
  *
+ * The notice area is mounted here too, so a failure raised on any screen is reported in
+ * the same place and with the same wording.
+ *
  * @param props - The screen to frame.
  * @returns The framed screen.
  */
 export default function DashboardLayout({ children }: DashboardLayoutProps): ReactNode {
-  return <AppShell>{children}</AppShell>;
+  return (
+    <ToastProvider>
+      <AppShell>{children}</AppShell>
+    </ToastProvider>
+  );
 }

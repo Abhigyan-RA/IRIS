@@ -1,8 +1,9 @@
 'use client';
 
-import { MessageCircle, User } from 'lucide-react';
+import { MessageCircle, RefreshCw, User } from 'lucide-react';
 import { useState, type ReactNode, type SyntheticEvent } from 'react';
-import { ApiError, askCopilot, type CopilotAnswer } from '../../lib/api';
+import { askCopilot, type CopilotAnswer } from '../../lib/api';
+import { describeFailure, type FriendlyFailure } from '../../lib/failures';
 import { Panel, SectionLabel } from '../primitives/Panel';
 
 /** Questions offered to a reader who does not know what to ask first. */
@@ -51,7 +52,8 @@ export function CopilotConversation({ ask = askCopilot }: CopilotConversationPro
   const [turns, setTurns] = useState<Turn[]>([]);
   const [draft, setDraft] = useState('');
   const [isAsking, setIsAsking] = useState(false);
-  const [failure, setFailure] = useState<string | null>(null);
+  const [failure, setFailure] = useState<FriendlyFailure | null>(null);
+  const [lastQuestion, setLastQuestion] = useState<string | null>(null);
 
   async function submitQuestion(question: string): Promise<void> {
     const cleaned = question.trim();
@@ -61,6 +63,7 @@ export function CopilotConversation({ ask = askCopilot }: CopilotConversationPro
 
     setTurns((existing) => [...existing, { role: 'reader', text: cleaned }]);
     setDraft('');
+    setLastQuestion(cleaned);
     setFailure(null);
     setIsAsking(true);
 
@@ -76,11 +79,9 @@ export function CopilotConversation({ ask = askCopilot }: CopilotConversationPro
         },
       ]);
     } catch (error) {
-      setFailure(
-        error instanceof ApiError
-          ? error.message
-          : 'The copilot could not answer. The model may be unavailable or over its daily cap.',
-      );
+      // The question stays in the transcript, so a reader can see what failed and retry it
+      // without typing it again.
+      setFailure(describeFailure(error));
     } finally {
       setIsAsking(false);
     }
@@ -154,9 +155,30 @@ export function CopilotConversation({ ask = askCopilot }: CopilotConversationPro
         )}
 
         {failure !== null && (
-          <p role="alert" className="text-sm text-warn">
-            {failure}
-          </p>
+          <div role="alert" className="rounded-card border border-rise bg-panel-inset p-3">
+            <p className="text-sm font-medium text-ink">{failure.title}</p>
+            <p className="mt-1 text-xs leading-relaxed text-ink-muted">{failure.detail}</p>
+            {failure.retryable && lastQuestion !== null ? (
+              <button
+                type="button"
+                onClick={() => {
+                  void submitQuestion(lastQuestion);
+                }}
+                className="mt-2 inline-flex items-center gap-1.5 rounded-pill border border-hairline-strong px-2.5 py-1 text-label text-ink-muted uppercase hover:text-ink"
+              >
+                <RefreshCw aria-hidden="true" className="h-3 w-3" />
+                Ask again
+              </button>
+            ) : null}
+            <details className="mt-2">
+              <summary className="cursor-pointer text-label text-ink-faint uppercase">
+                Technical detail
+              </summary>
+              <p className="mt-1 font-mono text-xs break-words text-ink-faint">
+                {failure.technical}
+              </p>
+            </details>
+          </div>
         )}
 
         <form onSubmit={handleSubmit} className="flex flex-wrap items-center gap-3">

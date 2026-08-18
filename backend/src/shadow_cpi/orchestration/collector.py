@@ -11,13 +11,15 @@ run leaves a trace in the health feed, so an empty screen can always be explaine
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
 from shadow_cpi.db.protocols import HealthEventWriter, HoldingsWriter, PriceWriter
 from shadow_cpi.ingestion.base import IngestionContext
+from shadow_cpi.ingestion.changes import HistoryChangeCalculator, PriceHistoryReader
 from shadow_cpi.ingestion.registry import SourceRegistry, default_registry
-from shadow_cpi.shared import PipelineEventType, PipelineHealthEvent
+from shadow_cpi.shared import CommodityPrice, PipelineEventType, PipelineHealthEvent
 
 
 @dataclass(frozen=True, slots=True)
@@ -51,6 +53,24 @@ class CollectionOutcome:
         return self.prices_written + self.holdings_written
 
 
+@dataclass(frozen=True, slots=True)
+class CollectionStores:
+    """Where a run writes what it collected.
+
+    The three always travel together, and grouping them keeps the service's constructor
+    about one thing: what to run, and where the results go.
+
+    Attributes:
+        prices: Where price records are stored.
+        holdings: Where holding records are stored.
+        events: Where the record of each run is written.
+    """
+
+    prices: PriceWriter
+    holdings: HoldingsWriter
+    events: HealthEventWriter
+
+
 class CollectionService:
     """Runs sources and stores their output."""
 
@@ -58,9 +78,8 @@ class CollectionService:
         self,
         registry: SourceRegistry,
         context: IngestionContext,
-        prices: PriceWriter,
-        holdings: HoldingsWriter,
-        events: HealthEventWriter,
+        stores: CollectionStores,
+        changes: HistoryChangeCalculator | None = None,
     ) -> None:
         """Create the service.
 
@@ -68,15 +87,17 @@ class CollectionService:
             registry: Where sources are looked up. Injected so a run can be narrowed to
                 a subset, and so tests need no real sources.
             context: Shared HTTP client and settings handed to each source.
-            prices: Where price records are stored.
-            holdings: Where holding records are stored.
-            events: Where the record of each run is written.
+            stores: Where the results are written.
+            changes: Works out changes a source did not publish, from readings already
+                stored. Optional, because a deployment can choose to keep only what each
+                source states.
         """
         self._registry = registry
         self._context = context
-        self._prices = prices
-        self._holdings = holdings
-        self._events = events
+        self._prices = stores.prices
+        self._holdings = stores.holdings
+        self._events = stores.events
+        self._changes = changes
 
     async def run_source(self, source_id: str) -> CollectionOutcome:
         """Run one source and store what it produced.
@@ -108,7 +129,12 @@ class CollectionService:
 
         try:
             result = await ingestor.ingest()
-            prices_written = await self._prices.upsert_prices(result.prices)
+            prices: Sequence[CommodityPrice] = result.prices
+            if self._changes is not None:
+                # Done before storing, so the stored row carries the change and every
+                # reader of it agrees rather than each recomputing its own.
+                prices = await self._changes.fill(list(prices))
+            prices_written = await self._prices.upsert_prices(prices)
             holdings_written = await self._holdings.upsert_holdings(result.holdings)
         except Exception as error:
             reason = f"{type(error).__name__}: {error}"
@@ -166,17 +192,16 @@ class CollectionService:
 
 def build_default_service(
     context: IngestionContext,
-    prices: PriceWriter,
-    holdings: HoldingsWriter,
-    events: HealthEventWriter,
+    stores: CollectionStores,
+    history: PriceHistoryReader | None = None,
 ) -> CollectionService:
     """Build a service over every source the application knows about.
 
     Args:
         context: Shared HTTP client and settings.
-        prices: Where price records are stored.
-        holdings: Where holding records are stored.
-        events: Where the record of each run is written.
+        stores: Where the results are written.
+        history: Where earlier readings are read from, so changes a source does not publish
+            can be worked out. Optional: without it, only what a source states is stored.
 
     Returns:
         A service backed by the application's source registry.
@@ -188,7 +213,6 @@ def build_default_service(
     return CollectionService(
         registry=default_registry,
         context=context,
-        prices=prices,
-        holdings=holdings,
-        events=events,
+        stores=stores,
+        changes=None if history is None else HistoryChangeCalculator(history),
     )

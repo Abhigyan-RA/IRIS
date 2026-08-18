@@ -57,6 +57,15 @@ class ScrapedSource:
         price_paths: Where the price may live in a row, as dotted paths tried in order. A
             generated collector nests values, for example ``price.value``.
         change_paths: Where the percentage change may live, as dotted paths.
+        series_value_paths: Where a value that differs from row to row may live. Some pages
+            publish a headline figure alongside a table of its parts: one container freight
+            index with a price per trade lane, for example. Those parts are worth storing in
+            their own right, so a reader can see which lane moved rather than only that the
+            average did.
+        series_label_paths: Where the name of that row's part may live, usually a link to the
+            page describing it. Without a name there is nothing to store the value under.
+        series_name_prefix: Prepended to the derived name, so a lane reads as
+            ``FBX03_China_to_North_America_East_Coast`` rather than an unqualified slug.
     """
 
     collector_id: str
@@ -83,12 +92,20 @@ class ScrapedSource:
         "change_percent",
     )
     price_fields: tuple[str, ...] = ("price", "current_price", "last", "value")
-    change_fields: tuple[str, ...] = (
-        "change_pct",
-        "daily_change",
-        "percent_change",
-        "change_percent",
-    )
+
+    series_value_paths: tuple[str, ...] = ()
+    series_label_paths: tuple[str, ...] = ()
+    series_name_prefix: str = ""
+
+    @property
+    def collects_a_series(self) -> bool:
+        """Whether this source publishes parts alongside its headline figure.
+
+        Returns:
+            True when both a per-row value and a name for it are declared. One without the
+            other cannot be stored, so both are required.
+        """
+        return bool(self.series_value_paths) and bool(self.series_label_paths)
 
     @property
     def required_paths(self) -> tuple[str, ...]:
@@ -150,11 +167,19 @@ SCRAPED_SOURCES: dict[str, ScrapedSource] = {
     ),
     "fbx_scraper": ScrapedSource(
         collector_id="fbx_scraper",
-        source_name="data.freightos.com",
-        url="https://data.freightos.com/",
+        source_name="fbx.freightos.com",
+        url="https://fbx.freightos.com/",
         entity_name="FBX_Global",
         sector=Sector.FREIGHT,
         unit="feu",
+        price_paths=("fbx_global_index_value.value", "price.value", "price"),
+        change_paths=("fbx_global_index_percent_change", "price_change_percent"),
+        # The page prices each trade lane as well as the global average, and names the lane
+        # in the link beside it. Those lane prices are the useful part: an importer cares
+        # what their own route costs, not what the world average costs.
+        series_value_paths=("fbx01_value.value",),
+        series_label_paths=("product_page_url",),
+        series_name_prefix="FBX",
         extraction_prompt=(
             "Extract the global container freight index value and each trade lane "
             "index value with its day-over-day percent change."
@@ -262,6 +287,70 @@ def parse_scraped_price(raw: object) -> Decimal | None:
         return Decimal(match.group().replace(",", "").lstrip("+"))
     except InvalidOperation:  # pragma: no cover - pattern already constrains this
         return None
+
+
+def first_text(row: Mapping[str, object], dotted_paths: Sequence[str]) -> str | None:
+    """Read the first path that holds usable text.
+
+    Args:
+        row: One scraped row.
+        dotted_paths: Paths to try, in order.
+
+    Returns:
+        The text, stripped, or None when no path holds any.
+    """
+    for path in dotted_paths:
+        value = first_value(row, (path,))
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+    return None
+
+
+def name_from_label(label: str, *, prefix: str = "") -> str | None:
+    """Turn a label into a stable entity name.
+
+    Collectors identify each part of a page by the link that describes it, so the name has to
+    be read out of a URL such as
+    ``.../terminal/fbx-03-china-to-north-america-east-coast/``. The last path segment carries
+    the meaning; the code at its start is folded into the prefix so the result reads as
+    ``FBX03_China_to_North_America_East_Coast``.
+
+    Names must be stable across runs, because they are the key a price history is stored
+    under. Anything derived from position on the page would not be.
+
+    Args:
+        label: The row's label, usually a URL.
+        prefix: Prepended to the result, naming the family the part belongs to.
+
+    Returns:
+        The name, or None when the label carries nothing usable.
+    """
+    text = label.strip().strip("/")
+    if not text:
+        return None
+
+    segment = text.rsplit("/", 1)[-1] if "/" in text else text
+    words = [word for word in re.split(r"[-_\s]+", segment) if word]
+    if not words:
+        return None
+
+    prefix_lower = prefix.lower()
+    # A slug usually repeats the family and its number, as in "fbx-03-china-to-...". Folding
+    # those into the prefix avoids a name that says the same thing twice.
+    if prefix and words and words[0].lower() == prefix_lower:
+        words = words[1:]
+        if words and words[0].isdigit():
+            prefix = f"{prefix}{words[0]}"
+            words = words[1:]
+    if not words:
+        return prefix or None
+
+    # Small joining words stay lowercase, so a lane reads as "China_to_North_America" rather
+    # than "China_To_North_America".
+    titled = "_".join(
+        word if word in {"to", "and", "of"} else word[:1].upper() + word[1:] for word in words
+    )
+    return f"{prefix}_{titled}" if prefix else titled
 
 
 class ScrapedPriceIngestor:
@@ -417,28 +506,106 @@ class ScrapedPriceIngestor:
                 honest timestamp available.
 
         Returns:
-            One price per row whose price could be read.
+            One price per distinct value read. A page listing many trade lanes or
+            benchmarks repeats the headline figure on every row, so identical values are
+            collected once: storing each copy would write a dozen identical records and
+            report a dozen prices collected, which misleads in both the count and the feed.
+            Where a source declares a per-row series as well, each row's own value is stored
+            under its own name, so a reader can see which part moved.
         """
         prices: list[CommodityPrice] = []
+        seen: set[tuple[Decimal, Decimal | None]] = set()
         for row in rows:
             price = parse_scraped_price(first_value(row, self._source.price_paths))
-            if price is None:
-                continue
-            prices.append(
-                CommodityPrice(
-                    entity_name=self._source.entity_name,
-                    sector=self._source.sector,
-                    price=price,
-                    currency=self._source.currency,
-                    unit=self._source.unit,
-                    pct_change_1d=parse_scraped_price(first_value(row, self._source.change_paths)),
-                    recorded_at=observed_at,
-                    source_name=self._source.source_name,
-                    source_url=self._source.url,
-                    ingestion_method=IngestionMethod.BRIGHTDATA_SCRAPE,
-                )
-            )
+            if price is not None:
+                change = parse_scraped_price(first_value(row, self._source.change_paths))
+                if (price, change) not in seen:
+                    seen.add((price, change))
+                    prices.append(
+                        self._price_record(
+                            entity_name=self._source.entity_name,
+                            price=price,
+                            change=change,
+                            observed_at=observed_at,
+                        )
+                    )
+
+            series = self._series_record(row, observed_at)
+            if series is not None:
+                prices.append(series)
         return prices
+
+    def _series_record(
+        self,
+        row: Mapping[str, object],
+        observed_at: datetime,
+    ) -> CommodityPrice | None:
+        """Read one row's own value, if the source publishes parts as well as a headline.
+
+        The change is deliberately not carried across: on the freight page every row repeats
+        the same percentage regardless of which lane it describes, so attaching it to each
+        lane would state a move that was never measured for that lane.
+
+        Args:
+            row: One scraped row.
+            observed_at: When the page was read.
+
+        Returns:
+            The part's price, or None when this source has no parts or the row has no name.
+        """
+        if not self._source.collects_a_series:
+            return None
+
+        value = parse_scraped_price(first_value(row, self._source.series_value_paths))
+        if value is None:
+            return None
+
+        label = first_text(row, self._source.series_label_paths)
+        if label is None:
+            return None
+
+        name = name_from_label(label, prefix=self._source.series_name_prefix)
+        if name is None:
+            return None
+
+        return self._price_record(
+            entity_name=name,
+            price=value,
+            change=None,
+            observed_at=observed_at,
+        )
+
+    def _price_record(
+        self,
+        *,
+        entity_name: str,
+        price: Decimal,
+        change: Decimal | None,
+        observed_at: datetime,
+    ) -> CommodityPrice:
+        """Build one stored price, with its provenance attached.
+
+        Args:
+            entity_name: What the value is called.
+            price: The value.
+            change: The percentage change, when the source reported one for this value.
+            observed_at: When the page was read.
+
+        Returns:
+            The record.
+        """
+        return CommodityPrice(
+            entity_name=entity_name,
+            sector=self._source.sector,
+            price=price,
+            currency=self._source.currency,
+            unit=self._source.unit,
+            pct_change_1d=change,
+            recorded_at=observed_at,
+            source_name=self._source.source_name,
+            source_url=self._source.url,
+            ingestion_method=IngestionMethod.BRIGHTDATA_SCRAPE,
+        )
 
 
 def _first_value(

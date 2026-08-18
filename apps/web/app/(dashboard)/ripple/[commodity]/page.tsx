@@ -1,8 +1,8 @@
 import type { ReactNode } from 'react';
-import { Panel } from '../../../../components/primitives/Panel';
 import { RippleChain, RippleLinks } from '../../../../components/ripple/RippleChain';
 import { PropagationReport, SelectedNode } from '../../../../components/ripple/SelectedNode';
-import { ApiError, getRipple, getTrend, type Ripple, type Trend } from '../../../../lib/api';
+import { FailureNotice } from '../../../../components/feedback/FailureNotice';
+import { getRipple, getTrend, type Ripple, type Trend } from '../../../../lib/api';
 
 /**
  * Props for the ripple screen.
@@ -33,15 +33,12 @@ export default async function RipplePage({ params }: RipplePageProps): Promise<R
 
   let ripple: Ripple | null = null;
   let trend: Trend | null;
-  let failure: string | null = null;
+  let failure: unknown = null;
 
   try {
     ripple = await getRipple(commodity);
   } catch (error) {
-    failure =
-      error instanceof ApiError
-        ? error.message
-        : 'The supply-chain graph could not be loaded for an unexpected reason.';
+    failure = error;
   }
 
   try {
@@ -53,16 +50,7 @@ export default async function RipplePage({ params }: RipplePageProps): Promise<R
   }
 
   if (ripple === null) {
-    return (
-      <Panel className="p-6">
-        <h1 className="text-title text-ink">{commodity}</h1>
-        <p className="mt-2 text-sm text-warn">{failure}</p>
-        <p className="mt-1 text-sm text-ink-faint">
-          Check that the API is running and that the graph database has been prepared with the
-          schema and starting graph.
-        </p>
-      </Panel>
-    );
+    return <FailureNotice heading={commodity} error={failure} />;
   }
 
   return (

@@ -60,22 +60,23 @@ describe('RiskMapPage', () => {
     expect(screen.getByText(/1 rising and 0 falling/)).toBeInTheDocument();
   });
 
-  it('says the API could not be reached rather than showing an empty screen', async () => {
-    getRiskMap.mockRejectedValue(new ApiError('API returned 503 for /api/risk-map'));
+  it('says the service is not ready rather than showing an empty screen', async () => {
+    getRiskMap.mockRejectedValue(new ApiError(503, 'API returned 503 for /api/risk-map'));
 
     render(await RiskMapPage());
 
-    expect(screen.getByText('API returned 503 for /api/risk-map')).toBeInTheDocument();
-    expect(screen.getByText(/NEXT_PUBLIC_API_URL/)).toBeInTheDocument();
+    expect(screen.getByRole('alert')).toHaveTextContent('The service is not ready yet');
+    // The heading stays, so the reader knows which screen failed.
+    expect(screen.getByRole('heading', { name: 'Global risk map' })).toBeInTheDocument();
   });
 
-  it('reports an unexpected failure without leaking its internals', async () => {
+  it('reports an unexpected failure without putting its internals on screen', async () => {
     getRiskMap.mockRejectedValue(new TypeError('cannot read property of undefined'));
 
     render(await RiskMapPage());
 
-    expect(screen.getByText(/could not be loaded for an unexpected reason/)).toBeInTheDocument();
-    expect(screen.queryByText(/cannot read property/)).not.toBeInTheDocument();
+    expect(screen.getByRole('alert')).toHaveTextContent('The service cannot be reached');
+    expect(screen.getByText(/cannot read property/)).not.toBeVisible();
   });
 
   it('renders an empty but working screen when nothing has been collected', async () => {

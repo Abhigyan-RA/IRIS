@@ -89,9 +89,11 @@ test.describe('the analyst journey', () => {
     page,
   }) => {
     // Point the browser at a screen whose data cannot be fetched, by asking for an
-    // entity the stub does not know. The screen must say what went wrong.
+    // entity the stub does not know. The screen must explain what went wrong in words a
+    // reader can act on, rather than printing the status it got back.
     await page.goto('/institutional?ticker=NOTSTUBBED');
 
-    await expect(page.getByText(/could not be loaded|returned 404/)).toBeVisible();
+    await expect(page.getByText('Nothing has been recorded for this yet')).toBeVisible();
+    await expect(page.getByText('Technical detail')).toBeVisible();
   });
 });

@@ -21,7 +21,8 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 
 from shadow_cpi.config import Settings, get_settings
-from shadow_cpi.orchestration.collector import CollectionService
+from shadow_cpi.ingestion.changes import HistoryChangeCalculator
+from shadow_cpi.orchestration.collector import CollectionService, CollectionStores
 from shadow_cpi.runtime import bootstrap
 
 
@@ -147,9 +148,14 @@ async def _serve(settings: Settings) -> None:  # pragma: no cover - long-running
             context=IngestionContext(
                 http=http, settings=settings, events=TimescaleHealthEventRepository(executor)
             ),
-            prices=TimescalePriceRepository(executor),
-            holdings=TimescaleHoldingsRepository(executor),
-            events=TimescaleHealthEventRepository(executor),
+            stores=CollectionStores(
+                prices=TimescalePriceRepository(executor),
+                holdings=TimescaleHoldingsRepository(executor),
+                events=TimescaleHealthEventRepository(executor),
+            ),
+            # Most pages publish a daily change and no weekly one, so the weekly figure is
+            # worked out from the readings already stored.
+            changes=HistoryChangeCalculator(TimescalePriceRepository(executor)),
         )
 
         sys.stdout.write("Collecting once before scheduling.\n")

@@ -16,6 +16,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 from datetime import datetime
+from decimal import Decimal
 
 from shadow_cpi.ai.prompts import COPILOT_SYSTEM, COPILOT_USER
 from shadow_cpi.ai.protocols import TextModel
@@ -131,15 +132,16 @@ class GroundedCopilot:
     async def _retrieve_prices(self, question: str) -> list[CommodityPrice]:
         """Find price rows relevant to a question.
 
-        Every tracked entity's latest price is considered, and those whose name
-        appears in the question are kept. Retrieving by name keeps the prompt small
-        and the answer specific.
+        Every tracked entity's latest price is fetched, then narrowed to those the question
+        names. A question that names nothing keeps them all: "what moved most this week" is
+        an ordinary question, and answering it with "no data" because no entity was spelled
+        out would be a refusal on a technicality.
 
         Args:
             question: The question being answered.
 
         Returns:
-            Matching prices, newest history last.
+            Matching prices, oldest first.
         """
         if self._prices is None:
             return []
@@ -147,11 +149,14 @@ class GroundedCopilot:
         latest: list[CommodityPrice] = []
         for sector in Sector:
             latest.extend(await self._prices.latest_prices_by_sector(sector))
+        if not latest:
+            return []
 
         lowered = question.lower()
         matched = [price for price in latest if _mentions(lowered, price.entity_name)]
         if not matched:
-            return []
+            # A general question about the market. Everything tracked is the evidence.
+            return sorted(latest, key=lambda price: price.recorded_at)
 
         # A trend is more useful than a single number, so the history of the first
         # match is included as well.
@@ -231,12 +236,28 @@ def _describe_prices(prices: list[CommodityPrice]) -> str:
     if not prices:
         return "none found"
     return "\n".join(
-        f"- {price.entity_name}: {price.price} {price.currency} per {price.unit} "
-        f"at {price.recorded_at:%Y-%m-%d %H:%M} UTC "
-        f"(change 1d: {price.pct_change_1d}) "
+        f"- {price.entity_name} ({price.sector.value}): {price.price} {price.currency} per "
+        f"{price.unit} at {price.recorded_at:%Y-%m-%d %H:%M} UTC "
+        f"(change 1 day: {_percent_or_unknown(price.pct_change_1d)}, "
+        f"change 7 days: {_percent_or_unknown(price.pct_change_7d)}) "
         f"[source: {price.source_name} {price.source_url}]"
         for price in prices
     )
+
+
+def _percent_or_unknown(value: Decimal | None) -> str:
+    """Render a percentage change, or say plainly that none was reported.
+
+    A bare ``None`` in the evidence invites the model to treat it as zero, which would turn
+    "we do not know" into "it did not move".
+
+    Args:
+        value: The change, or None when the source did not publish one.
+
+    Returns:
+        The value with a percent sign, or ``not reported``.
+    """
+    return "not reported" if value is None else f"{value}%"
 
 
 def _describe_holdings(holdings: list[InstitutionalHolding]) -> str:

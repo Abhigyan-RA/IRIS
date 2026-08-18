@@ -2,8 +2,9 @@ import type { ReactNode } from 'react';
 import { RiskMapPanel } from '../../../components/risk-map/RiskMapPanel';
 import { ContributionBreakdown, IndexSummary } from '../../../components/risk-map/IndexSummary';
 import { TopMovers } from '../../../components/risk-map/TopMovers';
-import { Panel } from '../../../components/primitives/Panel';
-import { ApiError, getRiskMap, type RiskMap } from '../../../lib/api';
+import { LanePrices } from '../../../components/risk-map/LanePrices';
+import { FailureNotice } from '../../../components/feedback/FailureNotice';
+import { getRiskMap, type RiskMap } from '../../../lib/api';
 
 /**
  * The Global Risk Map: the landing screen.
@@ -21,28 +22,16 @@ import { ApiError, getRiskMap, type RiskMap } from '../../../lib/api';
  */
 export default async function RiskMapPage(): Promise<ReactNode> {
   let map: RiskMap | null = null;
-  let failure: string | null = null;
+  let failure: unknown = null;
 
   try {
     map = await getRiskMap();
   } catch (error) {
-    failure =
-      error instanceof ApiError
-        ? error.message
-        : 'The risk map could not be loaded for an unexpected reason.';
+    failure = error;
   }
 
   if (map === null) {
-    return (
-      <Panel className="p-6">
-        <h1 className="text-title text-ink">Global risk map</h1>
-        <p className="mt-2 text-sm text-warn">{failure}</p>
-        <p className="mt-1 text-sm text-ink-faint">
-          Check that the API is running and that the dashboard is pointed at it with
-          NEXT_PUBLIC_API_URL.
-        </p>
-      </Panel>
-    );
+    return <FailureNotice heading="Global risk map" error={failure} />;
   }
 
   const entries = map.sectors.flatMap((group) => group.entries);
@@ -52,6 +41,7 @@ export default async function RiskMapPage(): Promise<ReactNode> {
       <div className="min-w-0 space-y-6">
         <RiskMapPanel entries={entries} />
         <TopMovers entries={entries} />
+        <LanePrices entries={entries} />
       </div>
 
       <aside className="space-y-8">
