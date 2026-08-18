@@ -1,0 +1,33 @@
+@import 'tailwindcss';
+@config '../tailwind.config.ts';
+
+/*
+  Base document styling. The interface is dark by design rather than by preference:
+  it is meant to be read for long stretches on a trading floor or an operations
+  screen, where a bright page is tiring and washes out coloured signals.
+
+  Fonts come from the platform stack rather than a web font, so the dashboard needs
+  no network round trip before it can render text, and no font file is fetched from
+  a third party at runtime.
+*/
+@layer base {
+  html {
+    color-scheme: dark;
+  }
+
+  body {
+    @apply bg-canvas font-sans text-ink antialiased;
+  }
+
+  /* Numbers are monospaced everywhere, so a changing digit never shifts the
+     figures next to it. */
+  .tabular {
+    @apply font-mono tabular-nums;
+  }
+
+  /* Keyboard focus must always be visible: this is an interface people operate
+     without a mouse. */
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-accent;
+  }
+}

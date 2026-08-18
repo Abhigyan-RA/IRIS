@@ -1,0 +1,73 @@
+# Local development infrastructure.
+#
+# Start it with:
+#     docker compose -f infra/docker-compose.yml up -d
+#     podman compose -f infra/docker-compose.yml up -d
+#
+# The credentials below are local-only defaults and must match your .env file.
+# Real credentials never belong in this file.
+#
+# Host ports are configurable because a developer machine often already runs one of
+# these services. If a port is taken, set the matching variable in .env rather than
+# stopping the service you already depend on, and point the connection strings in .env
+# at the port you chose.
+
+services:
+  timescaledb:
+    image: timescale/timescaledb:latest-pg16
+    container_name: shadowcpi-timescaledb
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: shadowcpi
+      POSTGRES_PASSWORD: shadowcpi
+      POSTGRES_DB: shadowcpi
+    ports:
+      - '${POSTGRES_HOST_PORT:-5432}:5432'
+    volumes:
+      - timescale-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U shadowcpi -d shadowcpi']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  neo4j:
+    image: neo4j:5-community
+    container_name: shadowcpi-neo4j
+    restart: unless-stopped
+    environment:
+      # Local-only password. Real credentials belong in .env, not in this file.
+      NEO4J_AUTH: neo4j/shadowcpi_local
+      NEO4J_PLUGINS: '["apoc"]'
+    ports:
+      - '${NEO4J_HTTP_HOST_PORT:-7474}:7474'
+      - '${NEO4J_BOLT_HOST_PORT:-7687}:7687'
+    volumes:
+      - neo4j-data:/data
+      - neo4j-logs:/logs
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -qO- http://localhost:7474 || exit 1']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: shadowcpi-redis
+    restart: unless-stopped
+    command: ['redis-server', '--appendonly', 'yes']
+    ports:
+      - '${REDIS_HOST_PORT:-6379}:6379'
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  timescale-data:
+  neo4j-data:
+  neo4j-logs:
+  redis-data:

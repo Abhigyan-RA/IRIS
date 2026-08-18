@@ -1,0 +1,137 @@
+[project]
+name = "shadow-cpi-backend"
+version = "0.1.0"
+description = "Shadow CPI backend: ingestion, normalization, REST API, and MCP server"
+readme = "README.md"
+requires-python = ">=3.11"
+
+dependencies = [
+  "fastapi==0.141.1",
+  "uvicorn[standard]==0.52.3",
+  "pydantic==2.13.4",
+  "pydantic-settings==2.15.0",
+  "httpx==0.28.1",
+  "psycopg[binary,pool]==3.2.3",
+  "neo4j==5.27.0",
+  "redis==5.2.1",
+  "apscheduler==3.11.0",
+  "structlog==24.4.0",
+  "python-dotenv==1.0.1",
+  "defusedxml==0.7.1",
+  "mcp==1.28.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest==8.3.4",
+  "pytest-asyncio==0.25.0",
+  "pytest-cov==6.0.0",
+  "respx==0.22.0",
+  "mypy==1.14.1",
+  "ruff==0.8.6",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/shadow_cpi"]
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = ["tests"]
+pythonpath = ["src"]
+asyncio_mode = "strict"
+asyncio_default_fixture_loop_scope = "function"
+# Unknown markers and config keys are errors, so a typo in a decorator fails
+# loudly instead of silently doing nothing. Skipped tests are rejected by a hook
+# in tests/conftest.py.
+addopts = "-ra --strict-markers --strict-config"
+
+[tool.coverage.run]
+source = ["src/shadow_cpi"]
+branch = true
+omit = ["*/__init__.py"]
+
+[tool.coverage.report]
+# The gate is deliberately a failure, not a warning.
+fail_under = 80
+show_missing = true
+skip_covered = false
+exclude_lines = ["pragma: no cover", "if TYPE_CHECKING:", "raise NotImplementedError"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = [
+  "E", "W",   # pycodestyle
+  "F",        # pyflakes
+  "I",        # import sorting
+  "N",        # pep8 naming
+  "UP",       # pyupgrade
+  "B",        # bugbear
+  "C4",       # comprehensions
+  "SIM",      # simplify
+  "ANN",      # missing annotations
+  "S",        # security checks (bandit rules)
+  "PL",       # a subset of pylint
+  "RUF",      # ruff-specific rules, including ambiguous Unicode detection
+  "D",        # docstrings on everything public
+]
+ignore = [
+  "D203",  # conflicts with D211
+  "D213",  # conflicts with D212
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Tests use bare asserts, magic numbers, short helper signatures, and grouping
+# classes whose names already say what they cover.
+"tests/**" = [
+  "S101",
+  "D100",
+  "D101",
+  "D102",
+  "D103",
+  "D104",
+  "D105",
+  "D106",
+  "D107",
+  "PLR2004",
+  "ANN001",
+  "ANN201",
+]
+# The statements in this module are built from module-level column-name constants
+# only. Every caller-supplied value is bound as a parameter, which the tests in
+# tests/test_timescale_repositories.py assert directly.
+"src/shadow_cpi/db/timescale/repositories.py" = ["S608"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+warn_unreachable = true
+disallow_any_explicit = false
+plugins = ["pydantic.mypy"]
+mypy_path = "src"
+packages = ["shadow_cpi"]
+
+[[tool.mypy.overrides]]
+module = ["tests.*"]
+disallow_untyped_defs = false
+
+# defusedxml ships no type information. It is used deliberately in place of the
+# standard XML parser because filings are untrusted input.
+[[tool.mypy.overrides]]
+module = ["defusedxml.*"]
+ignore_missing_imports = true
+
+# APScheduler ships no type information.
+[[tool.mypy.overrides]]
+module = ["apscheduler.*"]
+ignore_missing_imports = true

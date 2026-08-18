@@ -1,0 +1,40 @@
+{
+  "name": "shadow-cpi",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Shadow CPI alternative data intelligence platform",
+  "workspaces": [
+    "apps/*"
+  ],
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "scripts": {
+    "dev": "npm run dev --workspace @shadow-cpi/web",
+    "build": "npm run build --workspace @shadow-cpi/web",
+    "lint": "npm run lint --workspace @shadow-cpi/web",
+    "typecheck": "npm run typecheck --workspace @shadow-cpi/web",
+    "test": "npm run test --workspace @shadow-cpi/web",
+    "test:coverage": "npm run test:coverage --workspace @shadow-cpi/web",
+    "test:e2e": "npm run test:e2e --workspace @shadow-cpi/web",
+    "storybook": "npm run storybook --workspace @shadow-cpi/web",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "check:no-emoji": "python backend/src/shadow_cpi/tooling/no_emoji.py",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "*.{json,css,md,yml,yaml}": [
+      "prettier --write"
+    ]
+  },
+  "devDependencies": {
+    "husky": "9.1.7",
+    "lint-staged": "17.3.0",
+    "prettier": "3.9.6",
+    "prettier-plugin-tailwindcss": "0.8.1"
+  },
+  "overrides": {
+    "eslint": "9.39.5"
+  }
+}

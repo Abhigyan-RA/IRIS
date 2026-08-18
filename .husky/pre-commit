@@ -1,0 +1,28 @@
+#!/usr/bin/env sh
+# Pre-commit gate: fast checks only. The full test suite runs in CI.
+set -e
+
+# Frontend: format and lint staged files.
+npx --no-install lint-staged
+
+# Repository-wide check that no emoji were introduced.
+if [ -x backend/.venv/Scripts/python.exe ]; then
+  backend/.venv/Scripts/python.exe backend/src/shadow_cpi/tooling/no_emoji.py
+elif [ -x backend/.venv/bin/python ]; then
+  backend/.venv/bin/python backend/src/shadow_cpi/tooling/no_emoji.py
+else
+  python backend/src/shadow_cpi/tooling/no_emoji.py
+fi
+
+# Backend: lint, format check, and type check.
+if [ -x backend/.venv/Scripts/python.exe ]; then
+  BACKEND_PY=backend/.venv/Scripts/python.exe
+elif [ -x backend/.venv/bin/python ]; then
+  BACKEND_PY=backend/.venv/bin/python
+else
+  BACKEND_PY=python
+fi
+
+(cd backend && "../$BACKEND_PY" -m ruff check .)
+(cd backend && "../$BACKEND_PY" -m ruff format --check .)
+(cd backend && "../$BACKEND_PY" -m mypy)

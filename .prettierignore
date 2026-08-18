@@ -1,0 +1,13 @@
+node_modules
+.next
+out
+dist
+build
+storybook-static
+coverage
+htmlcov
+package-lock.json
+.venv
+__pycache__
+designs
+SHADOW_CPI_PRD_AND_ARCHITECTURE.md
