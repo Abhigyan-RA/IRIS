@@ -50,7 +50,7 @@ class TestApplyDatabaseSchema:
 
         applied = await apply_database_schema(executor)
 
-        assert applied == ["001_initial_schema"]
+        assert applied == ["001_initial_schema", "002_institutional_enrichment"]
 
     @pytest.mark.asyncio
     async def test_creates_the_price_table(self) -> None:

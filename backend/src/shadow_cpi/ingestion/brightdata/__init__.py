@@ -12,5 +12,17 @@ from shadow_cpi.ingestion.brightdata.collectors import (
     ScrapedPriceIngestor,
     ScrapedSource,
 )
+from shadow_cpi.ingestion.brightdata.whalewisdom import (
+    DEFAULT_WHALEWISDOM_FUNDS,
+    WHALEWISDOM_SOURCE_ID,
+    WhaleWisdomIngestor,
+)
 
-__all__ = ["SCRAPED_SOURCES", "ScrapedPriceIngestor", "ScrapedSource"]
+__all__ = [
+    "DEFAULT_WHALEWISDOM_FUNDS",
+    "SCRAPED_SOURCES",
+    "WHALEWISDOM_SOURCE_ID",
+    "ScrapedPriceIngestor",
+    "ScrapedSource",
+    "WhaleWisdomIngestor",
+]

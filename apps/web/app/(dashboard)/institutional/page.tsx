@@ -1,66 +1,55 @@
 import type { ReactNode } from 'react';
-import { HoldersTable } from '../../../components/institutional/HoldersTable';
-import { TickerPicker } from '../../../components/institutional/TickerPicker';
-import { SectionLabel } from '../../../components/primitives/Panel';
 import { FailureNotice } from '../../../components/feedback/FailureNotice';
-import { getHolders, type Holders } from '../../../lib/api';
+import { InstitutionalOverviewPanel } from '../../../components/institutional/InstitutionalOverviewPanel';
+import {
+  getHolders,
+  getInstitutionalOverview,
+  type Holders,
+  type InstitutionalOverview,
+} from '../../../lib/api';
 
-/** Shown when the reader arrives without choosing a stock. */
+/** Shown when there is no stock in the URL and the ledger is still empty. */
 const DEFAULT_TICKER = 'NVDA';
 
-/**
- * Props for the institutional screen.
- */
 interface InstitutionalPageProps {
-  /** Query parameters, carrying the chosen ticker. */
+  /** Query parameters carrying the selected stock ticker. */
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }
 
 /**
- * The Institutional Sentiment screen: what professional money did last quarter.
- *
- * Managers overseeing more than 100 million dollars must disclose their US equity
- * positions every quarter. That makes this a slow signal compared with the price
- * screens, and a useful cross-check: it says whether anyone with money at stake is
- * acting on the same pressure the prices show.
- *
- * @param props - Query parameters.
- * @returns The institutional screen.
+ * Institutional intelligence built from the official SEC ledger with optional,
+ * separately attributed WhaleWisdom watchlist enrichment.
  */
 export default async function InstitutionalPage({
   searchParams,
 }: InstitutionalPageProps): Promise<ReactNode> {
+  let overview: InstitutionalOverview;
+  try {
+    overview = await getInstitutionalOverview();
+  } catch (error) {
+    return <FailureNotice heading="Institutional sentiment" error={error} />;
+  }
+
   const params = await searchParams;
   const requested = params.ticker;
-  const ticker = (Array.isArray(requested) ? requested[0] : requested) ?? DEFAULT_TICKER;
-
+  const selected = Array.isArray(requested) ? requested[0] : requested;
+  const ticker = (selected ?? overview.stocks[0]?.stock_ticker ?? DEFAULT_TICKER).toUpperCase();
   let holders: Holders | null = null;
-  let failure: unknown = null;
-
+  let holderFailure: unknown = null;
   try {
     holders = await getHolders(ticker);
   } catch (error) {
-    failure = error;
+    holderFailure = error;
   }
 
   return (
-    <div className="space-y-6">
-      <div className="space-y-3">
-        <SectionLabel tone="primary">Institutional sentiment</SectionLabel>
-        <TickerPicker ticker={ticker.toUpperCase()} />
-      </div>
-
-      {holders === null ? (
-        <FailureNotice heading={`Holdings in ${ticker.toUpperCase()}`} error={failure} />
-      ) : (
-        <HoldersTable holders={holders} />
+    <>
+      <InstitutionalOverviewPanel overview={overview} holders={holders} ticker={ticker} />
+      {holders === null && (
+        <div className="mt-6">
+          <FailureNotice heading={`Holders in ${ticker}`} error={holderFailure} />
+        </div>
       )}
-
-      <p className="max-w-3xl text-xs text-ink-faint">
-        Quarterly disclosures describe positions as at the quarter end, not today. A fund may have
-        changed its position since filing, and only long US equity positions are reported on this
-        form.
-      </p>
-    </div>
+    </>
   );
 }

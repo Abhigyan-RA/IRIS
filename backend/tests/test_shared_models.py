@@ -11,7 +11,9 @@ from pydantic import ValidationError
 from shadow_cpi.shared import (
     CommodityPrice,
     IngestionMethod,
+    InstitutionalFundSnapshot,
     InstitutionalHolding,
+    InstitutionalHoldingEnrichment,
     PipelineEventType,
     PipelineHealthEvent,
     Sector,
@@ -174,6 +176,95 @@ class TestInstitutionalHolding:
 
         assert holding.market_value_usd is None
         assert holding.source_url is None
+
+
+def _fund_snapshot(**overrides: object) -> InstitutionalFundSnapshot:
+    payload: dict[str, object] = {
+        "filer_name": "Bridgewater Associates",
+        "filer_cik": "0001350694",
+        "report_period": date(2026, 6, 30),
+        "filing_date": date(2026, 8, 14),
+        "reported_value_usd": Decimal("24800000000.00"),
+        "discretionary_aum_usd": Decimal("124000000000.00"),
+        "top_10_concentration_pct": Decimal("32.500"),
+        "holdings_count": 742,
+        "portfolio_turnover_pct": Decimal("18.200"),
+        "whale_score": Decimal("72.400"),
+        "source_url": "https://whalewisdom.com/filer/bridgewater-associates-lp",
+        "observed_at": RECORDED_AT,
+    }
+    payload.update(overrides)
+    return InstitutionalFundSnapshot(**payload)  # type: ignore[arg-type]
+
+
+class TestInstitutionalFundSnapshot:
+    def test_accepts_the_public_fund_summary_fields(self) -> None:
+        snapshot = _fund_snapshot()
+
+        assert snapshot.filer_cik == "0001350694"
+        assert snapshot.holdings_count == 742
+        assert snapshot.source_name == "whalewisdom.com"
+        assert snapshot.ingestion_method is IngestionMethod.BRIGHTDATA_SCRAPE
+
+    def test_missing_proprietary_metrics_stay_missing(self) -> None:
+        snapshot = _fund_snapshot(whale_score=None, portfolio_turnover_pct=None)
+
+        assert snapshot.whale_score is None
+        assert snapshot.portfolio_turnover_pct is None
+
+    def test_negative_assets_are_rejected(self) -> None:
+        with pytest.raises(ValidationError):
+            _fund_snapshot(discretionary_aum_usd=Decimal("-1"))
+
+    def test_naive_observation_time_is_rejected(self) -> None:
+        with pytest.raises(ValidationError):
+            _fund_snapshot(observed_at=datetime(2026, 8, 15, 9, 0))
+
+
+def _holding_enrichment(**overrides: object) -> InstitutionalHoldingEnrichment:
+    payload: dict[str, object] = {
+        "filer_cik": "0001350694",
+        "stock_ticker": "NVDA",
+        "quarter_end": date(2026, 6, 30),
+        "stock_name": "NVIDIA Corporation",
+        "previous_pct_portfolio": Decimal("6.100"),
+        "rank": 3,
+        "reported_pct_change_shares": Decimal("14.000"),
+        "quarter_first_owned": "Q1 2024",
+        "estimated_avg_price": Decimal("111.42"),
+        "source_url": "https://whalewisdom.com/filer/bridgewater-associates-lp",
+        "observed_at": RECORDED_AT,
+    }
+    payload.update(overrides)
+    return InstitutionalHoldingEnrichment(**payload)  # type: ignore[arg-type]
+
+
+class TestInstitutionalHoldingEnrichment:
+    def test_accepts_fields_the_public_holding_table_adds(self) -> None:
+        enrichment = _holding_enrichment()
+
+        assert enrichment.stock_name == "NVIDIA Corporation"
+        assert enrichment.rank == 3
+        assert enrichment.reported_pct_change_shares == Decimal("14.000")
+
+    def test_cik_is_normalized(self) -> None:
+        assert _holding_enrichment(filer_cik="1350694").filer_cik == "0001350694"
+
+    def test_rank_must_be_positive(self) -> None:
+        with pytest.raises(ValidationError):
+            _holding_enrichment(rank=0)
+
+    def test_unavailable_table_fields_are_optional(self) -> None:
+        enrichment = _holding_enrichment(
+            previous_pct_portfolio=None,
+            rank=None,
+            reported_pct_change_shares=None,
+            quarter_first_owned=None,
+            estimated_avg_price=None,
+        )
+
+        assert enrichment.rank is None
+        assert enrichment.estimated_avg_price is None
 
 
 def _event(**overrides: object) -> PipelineHealthEvent:

@@ -20,7 +20,9 @@ from typing import Protocol, runtime_checkable
 
 from shadow_cpi.shared import (
     CommodityPrice,
+    InstitutionalFundSnapshot,
     InstitutionalHolding,
+    InstitutionalHoldingEnrichment,
     PipelineHealthEvent,
     Sector,
 )
@@ -131,4 +133,34 @@ class HealthEventReader(Protocol):
         since: datetime | None = None,
     ) -> list[PipelineHealthEvent]:
         """Return the newest events first, optionally only those after a moment."""
+        ...
+
+
+class InstitutionalEnrichmentWriter(Protocol):
+    """Stores scraped analytics that enrich, but never replace, official holdings."""
+
+    async def upsert_fund_snapshots(self, snapshots: Sequence[InstitutionalFundSnapshot]) -> int:
+        """Insert or update fund-quarter summaries."""
+        ...
+
+    async def upsert_holding_enrichments(
+        self, enrichments: Sequence[InstitutionalHoldingEnrichment]
+    ) -> int:
+        """Insert or update human-readable fields for official holding rows."""
+        ...
+
+
+class InstitutionalIntelligenceReader(Protocol):
+    """Reads the complete current institutional view."""
+
+    async def latest_holdings(self) -> list[InstitutionalHolding]:
+        """Return every holding from the newest quarter in storage."""
+        ...
+
+    async def latest_fund_snapshots(self) -> list[InstitutionalFundSnapshot]:
+        """Return the newest public summary for each configured fund."""
+        ...
+
+    async def latest_holding_enrichments(self) -> list[InstitutionalHoldingEnrichment]:
+        """Return enrichment rows from the newest available quarter."""
         ...

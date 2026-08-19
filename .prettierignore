@@ -11,3 +11,5 @@ package-lock.json
 __pycache__
 designs
 SHADOW_CPI_PRD_AND_ARCHITECTURE.md
+.kiro
+apps/web/next-env.d.ts

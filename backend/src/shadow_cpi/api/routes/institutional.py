@@ -7,16 +7,21 @@ positioning for it is another.
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime
 from decimal import ROUND_HALF_UP, Decimal
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, status
 from pydantic import BaseModel
 
-from shadow_cpi.api.dependencies import require_holdings
-from shadow_cpi.db.protocols import HoldingsReader
-from shadow_cpi.shared import InstitutionalHolding, normalize_cik
+from shadow_cpi.api.dependencies import require_holdings, require_institutional
+from shadow_cpi.db.protocols import HoldingsReader, InstitutionalIntelligenceReader
+from shadow_cpi.shared import (
+    InstitutionalFundSnapshot,
+    InstitutionalHolding,
+    InstitutionalHoldingEnrichment,
+    normalize_cik,
+)
 
 _PERCENT_PRECISION = Decimal("0.001")
 
@@ -229,4 +234,228 @@ async def read_filer_holdings(
             )
             for row in ordered
         ],
+    )
+
+
+class FundEnrichmentEntry(BaseModel):
+    """Public fund-page fields stored separately from the official ledger."""
+
+    report_period: date
+    filing_date: date | None
+    reported_value_usd: Decimal | None
+    discretionary_aum_usd: Decimal | None
+    top_10_concentration_pct: Decimal | None
+    holdings_count: int | None
+    portfolio_turnover_pct: Decimal | None
+    whale_score: Decimal | None
+    source_name: str
+    source_url: str
+    observed_at: datetime
+
+
+class FundSummaryEntry(BaseModel):
+    """One manager aggregated from official latest-quarter positions."""
+
+    filer_name: str
+    filer_cik: str
+    position_count: int
+    reported_value_usd: Decimal
+    source_name: str = "SEC EDGAR"
+    source_url: str | None
+    enrichment: FundEnrichmentEntry | None
+
+
+class StockSummaryEntry(BaseModel):
+    """One stock aggregated across every current manager in storage."""
+
+    stock_ticker: str
+    stock_name: str | None
+    holder_count: int
+    shares_held: int
+    market_value_usd: Decimal
+    shares_change_qoq: int
+    enriched_positions: int
+
+
+class InstitutionalMoveEntry(BaseModel):
+    """One official position ranked by reported share-count change."""
+
+    filer_name: str
+    filer_cik: str
+    stock_ticker: str
+    shares_held: int
+    market_value_usd: Decimal | None
+    shares_change_qoq: int
+    quarter_end: date
+    source_name: str = "SEC EDGAR"
+    source_url: str | None
+
+
+class EnrichmentCoverage(BaseModel):
+    """How much of the official current ledger has matching public-page metadata."""
+
+    matched_funds: int
+    matched_positions: int
+    observed_at: datetime | None
+
+
+class InstitutionalOverviewResponse(BaseModel):
+    """Bounded current-quarter institutional intelligence response."""
+
+    quarter_end: date | None
+    total_funds: int
+    total_stocks: int
+    total_positions: int
+    funds: list[FundSummaryEntry]
+    stocks: list[StockSummaryEntry]
+    top_buys: list[InstitutionalMoveEntry]
+    top_sells: list[InstitutionalMoveEntry]
+    enrichment_coverage: EnrichmentCoverage
+    coverage_note: str
+
+
+_COVERAGE_NOTE = (
+    "Official SEC 13F coverage includes every latest-quarter position currently stored; "
+    "human-readable enrichment is limited to the configured WhaleWisdom watchlist. "
+    "13F reports are quarterly, delayed, long-only disclosures and do not show shorts."
+)
+
+
+def _fund_enrichment(snapshot: InstitutionalFundSnapshot) -> FundEnrichmentEntry:
+    return FundEnrichmentEntry(
+        report_period=snapshot.report_period,
+        filing_date=snapshot.filing_date,
+        reported_value_usd=snapshot.reported_value_usd,
+        discretionary_aum_usd=snapshot.discretionary_aum_usd,
+        top_10_concentration_pct=snapshot.top_10_concentration_pct,
+        holdings_count=snapshot.holdings_count,
+        portfolio_turnover_pct=snapshot.portfolio_turnover_pct,
+        whale_score=snapshot.whale_score,
+        source_name=snapshot.source_name,
+        source_url=snapshot.source_url,
+        observed_at=snapshot.observed_at,
+    )
+
+
+def _move(holding: InstitutionalHolding) -> InstitutionalMoveEntry:
+    change = holding.shares_change_qoq
+    if change is None:  # guarded by the caller; retained for type narrowing safety
+        raise ValueError("a ranked move requires shares_change_qoq")
+    return InstitutionalMoveEntry(
+        filer_name=holding.filer_name,
+        filer_cik=holding.filer_cik,
+        stock_ticker=holding.stock_ticker,
+        shares_held=holding.shares_held,
+        market_value_usd=holding.market_value_usd,
+        shares_change_qoq=change,
+        quarter_end=holding.quarter_end,
+        source_url=holding.source_url,
+    )
+
+
+@router.get(
+    "/overview",
+    response_model=InstitutionalOverviewResponse,
+    summary="Current institutional holdings and public-page enrichment",
+)
+async def read_institutional_overview(
+    institutional: Annotated[InstitutionalIntelligenceReader, Depends(require_institutional)],
+    fund_limit: Annotated[int, Query(ge=1, le=1000)] = 250,
+    stock_limit: Annotated[int, Query(ge=1, le=1000)] = 250,
+    mover_limit: Annotated[int, Query(ge=1, le=100)] = 25,
+) -> InstitutionalOverviewResponse:
+    """Aggregate the latest official quarter and join bounded watchlist enrichment."""
+    holdings = await institutional.latest_holdings()
+    snapshots = await institutional.latest_fund_snapshots()
+    enrichments = await institutional.latest_holding_enrichments()
+    quarter_end = max((row.quarter_end for row in holdings), default=None)
+    current = [row for row in holdings if row.quarter_end == quarter_end]
+
+    matching_snapshots = {
+        row.filer_cik: row
+        for row in snapshots
+        if quarter_end is not None and row.report_period == quarter_end
+    }
+    matching_enrichments: dict[tuple[str, str], InstitutionalHoldingEnrichment] = {
+        (row.filer_cik, row.stock_ticker): row
+        for row in enrichments
+        if quarter_end is not None and row.quarter_end == quarter_end
+    }
+
+    fund_rows: dict[str, list[InstitutionalHolding]] = {}
+    stock_rows: dict[str, list[InstitutionalHolding]] = {}
+    for row in current:
+        fund_rows.setdefault(row.filer_cik, []).append(row)
+        stock_rows.setdefault(row.stock_ticker, []).append(row)
+
+    funds = [
+        FundSummaryEntry(
+            filer_name=rows[0].filer_name,
+            filer_cik=cik,
+            position_count=len(rows),
+            reported_value_usd=sum(
+                (row.market_value_usd or Decimal(0) for row in rows), Decimal(0)
+            ),
+            source_url=rows[0].source_url,
+            enrichment=(
+                _fund_enrichment(matching_snapshots[cik]) if cik in matching_snapshots else None
+            ),
+        )
+        for cik, rows in fund_rows.items()
+    ]
+    funds.sort(key=lambda row: row.reported_value_usd, reverse=True)
+
+    stocks: list[StockSummaryEntry] = []
+    for ticker, rows in stock_rows.items():
+        matched = [
+            matching_enrichments[(row.filer_cik, ticker)]
+            for row in rows
+            if (row.filer_cik, ticker) in matching_enrichments
+        ]
+        stocks.append(
+            StockSummaryEntry(
+                stock_ticker=ticker,
+                stock_name=next(
+                    (item.stock_name for item in matched if item.stock_name is not None),
+                    None,
+                ),
+                holder_count=len(rows),
+                shares_held=sum(row.shares_held for row in rows),
+                market_value_usd=sum(
+                    (row.market_value_usd or Decimal(0) for row in rows), Decimal(0)
+                ),
+                shares_change_qoq=sum(row.shares_change_qoq or 0 for row in rows),
+                enriched_positions=len(matched),
+            )
+        )
+    stocks.sort(key=lambda row: row.market_value_usd, reverse=True)
+
+    changed = [row for row in current if row.shares_change_qoq is not None]
+    buys = sorted(
+        (row for row in changed if (row.shares_change_qoq or 0) > 0),
+        key=lambda row: row.shares_change_qoq or 0,
+        reverse=True,
+    )
+    sells = sorted(
+        (row for row in changed if (row.shares_change_qoq or 0) < 0),
+        key=lambda row: row.shares_change_qoq or 0,
+    )
+    observed = [row.observed_at for row in matching_snapshots.values()]
+    observed.extend(row.observed_at for row in matching_enrichments.values())
+
+    return InstitutionalOverviewResponse(
+        quarter_end=quarter_end,
+        total_funds=len(fund_rows),
+        total_stocks=len(stock_rows),
+        total_positions=len(current),
+        funds=funds[:fund_limit],
+        stocks=stocks[:stock_limit],
+        top_buys=[_move(row) for row in buys[:mover_limit]],
+        top_sells=[_move(row) for row in sells[:mover_limit]],
+        enrichment_coverage=EnrichmentCoverage(
+            matched_funds=len(matching_snapshots),
+            matched_positions=len(matching_enrichments),
+            observed_at=max(observed, default=None),
+        ),
+        coverage_note=_COVERAGE_NOTE,
     )

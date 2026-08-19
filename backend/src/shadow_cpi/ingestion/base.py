@@ -17,7 +17,12 @@ from typing import Protocol, runtime_checkable
 from shadow_cpi.config import Settings
 from shadow_cpi.db.protocols import HealthEventWriter
 from shadow_cpi.ingestion.http import HttpClient
-from shadow_cpi.shared import CommodityPrice, InstitutionalHolding
+from shadow_cpi.shared import (
+    CommodityPrice,
+    InstitutionalFundSnapshot,
+    InstitutionalHolding,
+    InstitutionalHoldingEnrichment,
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -52,11 +57,15 @@ class IngestionResult:
         source_name: Which source produced this, for logging and attribution.
         prices: Price observations found.
         holdings: Disclosure lines found.
+        fund_snapshots: Public fund-level enrichment observed.
+        holding_enrichments: Human-readable metadata for official holding rows.
     """
 
     source_name: str
     prices: tuple[CommodityPrice, ...] = field(default=())
     holdings: tuple[InstitutionalHolding, ...] = field(default=())
+    fund_snapshots: tuple[InstitutionalFundSnapshot, ...] = field(default=())
+    holding_enrichments: tuple[InstitutionalHoldingEnrichment, ...] = field(default=())
 
     @property
     def record_count(self) -> int:
@@ -65,7 +74,12 @@ class IngestionResult:
         Returns:
             Prices plus holdings.
         """
-        return len(self.prices) + len(self.holdings)
+        return (
+            len(self.prices)
+            + len(self.holdings)
+            + len(self.fund_snapshots)
+            + len(self.holding_enrichments)
+        )
 
 
 @runtime_checkable

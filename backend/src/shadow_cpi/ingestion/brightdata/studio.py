@@ -65,11 +65,13 @@ class HealStatus(StrEnum):
     """Where a repair has got to.
 
     Attributes:
+        RUNNING: Bright Data is still generating or previewing a repair.
         AWAITING_APPROVAL: A fix has been drafted and is waiting to be accepted.
         DONE: The fix has been applied to the collector.
         FAILED: No fix could be produced.
     """
 
+    RUNNING = "running"
     AWAITING_APPROVAL = "awaiting_approval"
     DONE = "done"
     FAILED = "failed"
@@ -254,10 +256,10 @@ class ScraperStudioClient:
         """
         for _ in range(max_polls):
             status = await self.heal_progress(collector_id)
-            # Anything other than a failure is a definite answer: the repair is either
-            # drafted and waiting, or already applied. A failure here also covers a status
-            # the endpoint has not settled on yet, so it is worth another look.
-            if status is not HealStatus.FAILED:
+            # Running is a real state, not a failure. Bright Data can remain there while
+            # several code-fixer and preview-runner passes execute. A transient request
+            # failure is also retried, because losing one poll must not abort the repair.
+            if status not in {HealStatus.RUNNING, HealStatus.FAILED}:
                 return status
             await self._sleep(poll_seconds)
         return HealStatus.FAILED
@@ -304,6 +306,8 @@ def _read_heal_status(reply: object) -> HealStatus:
 
     status: Any = reply.get("status", "")
     text = str(status).lower()
+    if text in {"running", "pending", "in_progress", "processing"}:
+        return HealStatus.RUNNING
     if text in {"pending_answer", "awaiting_approval"}:
         return HealStatus.AWAITING_APPROVAL
     if text in {"done", "ok", "saved", "completed"}:

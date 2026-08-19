@@ -190,6 +190,24 @@ class TestSiteThatChanged:
         assert studio.waits == 1
 
     @pytest.mark.asyncio
+    async def test_a_repair_that_starts_running_is_waited_for_before_approval(self) -> None:
+        """Live refactors start as running; treating that as failed disables auto-healing."""
+        studio = FakeStudio(
+            [EMPTY_ROWS, HEALTHY_ROWS],
+            heal_status=HealStatus.RUNNING,
+            wait_status=HealStatus.AWAITING_APPROVAL,
+        )
+
+        outcome = await _runner(studio, RecordingEventWriter()).run(
+            COLLECTOR, "investing.com", PAGE
+        )
+
+        assert outcome.rows == HEALTHY_ROWS
+        assert outcome.healed is True
+        assert studio.waits == 2
+        assert studio.approvals == [True]
+
+    @pytest.mark.asyncio
     async def test_a_repair_waits_for_a_person_when_that_is_configured(self) -> None:
         studio = FakeStudio([EMPTY_ROWS, HEALTHY_ROWS])
         events = RecordingEventWriter()

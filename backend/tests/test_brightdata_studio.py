@@ -222,6 +222,30 @@ class TestRepairingACollector:
         assert http.gets[0].endswith("/refactor_template/progress")
 
     @pytest.mark.asyncio
+    async def test_a_running_repair_is_reported_as_running(self) -> None:
+        """Bright Data returns this while its code-fixer and preview runner are working."""
+        http = ScriptedHttpClient(get_replies=[{"status": "running", "step": "code_fixer"}])
+
+        status = await _client(http).heal_progress(COLLECTOR)
+
+        assert status is HealStatus.RUNNING
+
+    @pytest.mark.asyncio
+    async def test_waiting_continues_while_a_repair_is_running(self) -> None:
+        http = ScriptedHttpClient(
+            get_replies=[
+                {"status": "running", "step": "code_fixer"},
+                {"status": "running", "step": "preview_runner"},
+                {"status": "pending_answer"},
+            ]
+        )
+
+        status = await _client(http).wait_for_heal(COLLECTOR, poll_seconds=0, max_polls=5)
+
+        assert status is HealStatus.AWAITING_APPROVAL
+        assert len(http.gets) == 3
+
+    @pytest.mark.asyncio
     async def test_approving_keeps_the_same_collector_and_saves_the_change(self) -> None:
         """The handle must not change, or every schedule pointing at it would break."""
         http = ScriptedHttpClient(post_replies=[None])

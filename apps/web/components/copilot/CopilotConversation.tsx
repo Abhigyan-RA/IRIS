@@ -1,7 +1,7 @@
 'use client';
 
 import { MessageCircle, RefreshCw, User } from 'lucide-react';
-import { useState, type ReactNode, type SyntheticEvent } from 'react';
+import { useEffect, useRef, useState, type ReactNode, type SyntheticEvent } from 'react';
 import { askCopilot, type CopilotAnswer } from '../../lib/api';
 import { describeFailure, type FriendlyFailure } from '../../lib/failures';
 import { Panel, SectionLabel } from '../primitives/Panel';
@@ -54,6 +54,26 @@ export function CopilotConversation({ ask = askCopilot }: CopilotConversationPro
   const [isAsking, setIsAsking] = useState(false);
   const [failure, setFailure] = useState<FriendlyFailure | null>(null);
   const [lastQuestion, setLastQuestion] = useState<string | null>(null);
+
+  /** Ref attached to the bottom of the conversation to scroll new content into view. */
+  const bottomRef = useRef<HTMLDivElement>(null);
+  /** Tracks the number of turns so we can scroll when a new one appears. */
+  const prevTurnCountRef = useRef(0);
+
+  // Scroll the latest turn into view whenever the turn list grows.
+  useEffect(() => {
+    if (turns.length > prevTurnCountRef.current) {
+      bottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    }
+    prevTurnCountRef.current = turns.length;
+  }, [turns]);
+
+  // Scroll loading indicator into view when asking starts.
+  useEffect(() => {
+    if (isAsking) {
+      bottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    }
+  }, [isAsking]);
 
   async function submitQuestion(question: string): Promise<void> {
     const cleaned = question.trim();
@@ -203,6 +223,9 @@ export function CopilotConversation({ ask = askCopilot }: CopilotConversationPro
             Ask
           </button>
         </form>
+
+        {/* Scroll anchor: always at the bottom of the conversation content. */}
+        <div ref={bottomRef} aria-hidden="true" />
       </div>
 
       <aside className="space-y-3">

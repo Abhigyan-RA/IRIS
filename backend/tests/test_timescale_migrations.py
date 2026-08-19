@@ -47,8 +47,11 @@ class TestLoadMigrations:
     def test_discovers_the_shipped_migrations(self) -> None:
         migrations = load_migrations()
 
-        assert [migration.version for migration in migrations] == [1]
-        assert migrations[0].name == "initial_schema"
+        assert [migration.version for migration in migrations] == [1, 2]
+        assert [migration.name for migration in migrations] == [
+            "initial_schema",
+            "institutional_enrichment",
+        ]
 
     def test_orders_migrations_numerically_not_alphabetically(self, tmp_path: Path) -> None:
         for filename in ("010_tenth.sql", "002_second.sql", "001_first.sql"):
@@ -100,7 +103,7 @@ class TestMigrator:
 
         applied = await Migrator(executor).upgrade()
 
-        assert [migration.version for migration in applied] == [1]
+        assert [migration.version for migration in applied] == [1, 2]
         assert "CREATE TABLE IF NOT EXISTS commodity_prices" in _sql_of(executor)
         assert any(
             "INSERT INTO schema_migrations" in sql and params[0] == 1
@@ -109,7 +112,7 @@ class TestMigrator:
 
     @pytest.mark.asyncio
     async def test_skips_migrations_that_are_already_applied(self) -> None:
-        executor = FakeExecutor(applied_versions=[1])
+        executor = FakeExecutor(applied_versions=[1, 2])
 
         applied = await Migrator(executor).upgrade()
 
@@ -123,7 +126,7 @@ class TestMigrator:
 
         await Migrator(executor).upgrade()
 
-        assert executor.transactions == 1
+        assert executor.transactions == 2
 
     @pytest.mark.asyncio
     async def test_version_is_recorded_with_a_parameter_not_string_building(self) -> None:
@@ -145,7 +148,7 @@ class TestMigrator:
 
         pending = await Migrator(executor).pending()
 
-        assert [migration.version for migration in pending] == [1]
+        assert [migration.version for migration in pending] == [1, 2]
         assert "CREATE TABLE IF NOT EXISTS commodity_prices" not in _sql_of(executor)
 
     @pytest.mark.asyncio
@@ -164,6 +167,12 @@ class TestShippedSchema:
     @staticmethod
     def _initial_schema() -> str:
         return (MIGRATIONS_DIRECTORY / "001_initial_schema.sql").read_text(encoding="utf-8")
+
+    @staticmethod
+    def _enrichment_schema() -> str:
+        return (MIGRATIONS_DIRECTORY / "002_institutional_enrichment.sql").read_text(
+            encoding="utf-8"
+        )
 
     def test_creates_the_three_tables(self) -> None:
         sql = self._initial_schema()
@@ -208,3 +217,29 @@ class TestShippedSchema:
 
         assert all(isinstance(migration, Migration) for migration in migrations)
         assert all(migration.sql.strip() for migration in migrations)
+
+    def test_enrichment_has_separate_fund_and_holding_tables(self) -> None:
+        sql = self._enrichment_schema()
+
+        assert "CREATE TABLE IF NOT EXISTS institutional_fund_snapshots" in sql
+        assert "CREATE TABLE IF NOT EXISTS institutional_holding_enrichments" in sql
+
+    def test_scraped_enrichment_cannot_replace_the_official_holding_row(self) -> None:
+        sql = self._enrichment_schema()
+
+        assert "ALTER TABLE institutional_holdings" not in sql
+        assert "UNIQUE (filer_cik, stock_ticker, quarter_end)" in sql
+
+    def test_every_enrichment_row_records_provenance_and_observation_time(self) -> None:
+        sql = self._enrichment_schema()
+
+        assert sql.count("source_name") >= 2
+        assert sql.count("source_url") >= 2
+        assert sql.count("ingestion_method") >= 2
+        assert sql.count("observed_at") >= 2
+
+    def test_enrichment_indexes_support_fund_stock_and_quarter_views(self) -> None:
+        sql = self._enrichment_schema()
+
+        assert "idx_fund_snapshots_period" in sql
+        assert "idx_holding_enrichments_ticker_quarter" in sql

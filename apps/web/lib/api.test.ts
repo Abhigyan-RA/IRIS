@@ -7,6 +7,7 @@ import {
   fetchFromApi,
   getHealthFeed,
   getHolders,
+  getInstitutionalOverview,
   getRipple,
   getRiskMap,
   getTrend,
@@ -171,6 +172,7 @@ describe('endpoint helpers', () => {
           links: [],
           affected_industries: [],
           exposed_filers: [],
+
           explanation: null,
         }),
     });
@@ -179,6 +181,34 @@ describe('endpoint helpers', () => {
 
     expect(vi.mocked(fetch).mock.calls[0]?.[0]).toContain('/api/graph/ripple/Copper?depth=3');
     expect(result.depth).toBe(3);
+  });
+
+  it('reads and validates the bounded institutional overview', async () => {
+    mockFetch({
+      json: () =>
+        Promise.resolve({
+          quarter_end: '2025-12-31',
+          total_funds: 1,
+          total_stocks: 1,
+          total_positions: 1,
+          funds: [],
+          stocks: [],
+          top_buys: [],
+          top_sells: [],
+          enrichment_coverage: {
+            matched_funds: 0,
+            matched_positions: 0,
+            observed_at: null,
+          },
+          coverage_note: 'Official SEC holdings; configured WhaleWisdom watchlist only.',
+        }),
+    });
+
+    const result = await getInstitutionalOverview();
+
+    expect(vi.mocked(fetch).mock.calls[0]?.[0]).toContain('/api/institutional/overview');
+    expect(result.quarter_end).toBe('2025-12-31');
+    expect(result.total_positions).toBe(1);
   });
 
   it('reads the holders of a stock', async () => {

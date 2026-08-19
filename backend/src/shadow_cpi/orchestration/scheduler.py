@@ -68,7 +68,7 @@ CADENCES: tuple[Cadence, ...] = (
     Cadence(
         name="institutional filings",
         minutes=60,
-        source_ids=("sec_edgar_13f",),
+        source_ids=("sec_edgar_13f", "whalewisdom_13f_scraper"),
     ),
 )
 
@@ -143,6 +143,7 @@ async def _serve(settings: Settings) -> None:  # pragma: no cover - long-running
     ):
         await pool.open(wait=True)
         executor = PsycopgExecutor(cast("ConnectionPool", pool))
+        institutional = TimescaleHoldingsRepository(executor)
         service = CollectionService(
             registry=default_registry,
             context=IngestionContext(
@@ -150,8 +151,9 @@ async def _serve(settings: Settings) -> None:  # pragma: no cover - long-running
             ),
             stores=CollectionStores(
                 prices=TimescalePriceRepository(executor),
-                holdings=TimescaleHoldingsRepository(executor),
+                holdings=institutional,
                 events=TimescaleHealthEventRepository(executor),
+                institutional=institutional,
             ),
             # Most pages publish a daily change and no weekly one, so the weekly figure is
             # worked out from the readings already stored.

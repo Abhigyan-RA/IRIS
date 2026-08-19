@@ -91,6 +91,7 @@ async def _collect(  # pragma: no cover - needs live databases
         from typing import cast
 
         executor = PsycopgExecutor(cast("ConnectionPool", pool))
+        institutional = TimescaleHoldingsRepository(executor)
 
         service = CollectionService(
             registry=default_registry,
@@ -99,8 +100,9 @@ async def _collect(  # pragma: no cover - needs live databases
             ),
             stores=CollectionStores(
                 prices=TimescalePriceRepository(executor),
-                holdings=TimescaleHoldingsRepository(executor),
+                holdings=institutional,
                 events=TimescaleHealthEventRepository(executor),
+                institutional=institutional,
             ),
             # Most pages publish a daily change and no weekly one, so the weekly figure is
             # worked out from the readings already stored.

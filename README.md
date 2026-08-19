@@ -94,6 +94,7 @@ backend/.venv/Scripts/python -m shadow_cpi.mcp_server.main
 | `GET /api/risk-map`                           | Newest price per tracked entity, grouped by category |
 | `GET /api/commodities/{name}/trend?days=30`   | Price history for one entity                         |
 | `GET /api/graph/ripple/{commodity}?depth=2`   | What a commodity feeds into, and who is exposed      |
+| `GET /api/institutional/overview`             | Latest stored funds, stocks, moves, and enrichment   |
 | `GET /api/institutional/holders/{ticker}`     | Funds reporting a position in a stock                |
 | `GET /api/institutional/filer/{cik}/holdings` | One fund's reported portfolio                        |
 | `GET /api/pipeline-health`                    | Recent collector activity                            |
@@ -149,16 +150,24 @@ backend/.venv/Scripts/python -m shadow_cpi.orchestration.scheduler
 
 What works with which credentials:
 
-| Source                                                                        | Needs                                                     | Without it           |
-| ----------------------------------------------------------------------------- | --------------------------------------------------------- | -------------------- |
-| `sec_edgar_13f`                                                               | nothing, only a contact address in `SEC_EDGAR_USER_AGENT` | works out of the box |
-| `eia_wti_page`, `eia_brent_page`                                              | nothing; read from public government pages                | work out of the box  |
-| `eia_petroleum_spot`                                                          | free `EIA_API_KEY`                                        | skipped              |
-| `usda_grain_prices`                                                           | free `USDA_MARS_API_KEY`                                  | skipped              |
-| `lme_copper_scraper`, `fbx_scraper`, `baltic_dry_scraper`, `oilprice_scraper` | a Scraper Studio collector in `SCRAPER_STUDIO_COLLECTORS` | skipped              |
+| Source                                                                        | Needs                                                         | Without it                       |
+| ----------------------------------------------------------------------------- | ------------------------------------------------------------- | -------------------------------- |
+| `sec_edgar_13f`                                                               | nothing, only a contact address in `SEC_EDGAR_USER_AGENT`     | works out of the box             |
+| `whalewisdom_13f_scraper`                                                     | a single-page Scraper Studio collector and explicit watchlist | skipped; SEC holdings still work |
+| `eia_wti_page`, `eia_brent_page`                                              | nothing; read from public government pages                    | work out of the box              |
+| `eia_petroleum_spot`                                                          | free `EIA_API_KEY`                                            | skipped                          |
+| `usda_grain_prices`                                                           | free `USDA_MARS_API_KEY`                                      | skipped                          |
+| `lme_copper_scraper`, `fbx_scraper`, `baltic_dry_scraper`, `oilprice_scraper` | a Scraper Studio collector in `SCRAPER_STUDIO_COLLECTORS`     | skipped                          |
 
 A source that cannot run is skipped and says so, rather than failing quietly. Every run,
 including a skip, is visible on the pipeline health screen.
+
+Institutional holdings follow a stricter provenance boundary. SEC EDGAR is the authoritative
+ledger for shares and market value. The dashboard shows every fund, stock, and position from
+the newest SEC quarter currently stored, subject to the API's stated response caps. WhaleWisdom
+is optional human-readable enrichment for an explicit fund watchlist only; it never overwrites
+SEC rows, discovers additional filer pages, or claims exhaustive site coverage. Form 13F data is
+quarterly, delayed, and long-only, so the screen states the reporting quarter and this limitation.
 
 ### What gets stored, and what does not
 

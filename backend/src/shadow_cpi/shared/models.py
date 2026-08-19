@@ -169,6 +169,107 @@ class InstitutionalHolding(_StrictModel):
         return normalize_cik(value)
 
 
+InstitutionalMetric = Annotated[Decimal, Field(max_digits=12, decimal_places=3)]
+EstimatedPrice = Annotated[Decimal, Field(max_digits=18, decimal_places=4, ge=0)]
+
+
+class InstitutionalFundSnapshot(_StrictModel):
+    """Public fund-level analytics observed for one reported quarter.
+
+    SEC filings remain the authoritative holdings ledger. This record stores the summary
+    fields a human-readable fund page adds, without allowing a scraped value to replace an
+    official share count or market value.
+
+    Attributes:
+        filer_name: Investment manager name.
+        filer_cik: Ten-digit SEC identifier supplied by the configured watchlist.
+        report_period: Quarter the summary describes.
+        filing_date: Date the 13F was filed, when shown.
+        reported_value_usd: Total value of reported 13F securities.
+        discretionary_aum_usd: Form ADV discretionary assets, when shown.
+        top_10_concentration_pct: Share of the reported portfolio in its ten largest holdings.
+        holdings_count: Number of positions reported.
+        portfolio_turnover_pct: Public turnover metric, when shown.
+        whale_score: Proprietary score, only when the public page displays it.
+        source_name: Human-readable origin.
+        source_url: Exact public page observed.
+        ingestion_method: How the page was collected.
+        observed_at: When the page was read.
+    """
+
+    filer_name: str = Field(min_length=1, max_length=255)
+    filer_cik: str
+    report_period: date
+    filing_date: date | None = None
+    reported_value_usd: MarketValue | None = None
+    discretionary_aum_usd: MarketValue | None = None
+    top_10_concentration_pct: PortfolioPercent | None = None
+    holdings_count: int | None = Field(default=None, ge=0)
+    portfolio_turnover_pct: InstitutionalMetric | None = Field(default=None, ge=0)
+    whale_score: InstitutionalMetric | None = Field(default=None, ge=0)
+    source_name: str = Field(default="whalewisdom.com", min_length=1, max_length=100)
+    source_url: str = Field(min_length=1)
+    ingestion_method: IngestionMethod = IngestionMethod.BRIGHTDATA_SCRAPE
+    observed_at: datetime
+
+    @field_validator("filer_cik")
+    @classmethod
+    def _normalize_filer_cik(cls, value: str) -> str:
+        return normalize_cik(value)
+
+    @field_validator("observed_at")
+    @classmethod
+    def _normalize_observed_at(cls, value: datetime) -> datetime:
+        return require_utc(value)
+
+    @field_validator("source_url")
+    @classmethod
+    def _require_web_url(cls, value: str) -> str:
+        if not value.startswith(("http://", "https://")):
+            raise ValueError("source_url must start with http:// or https://")
+        return value
+
+
+class InstitutionalHoldingEnrichment(_StrictModel):
+    """Human-readable metadata attached to one official holding.
+
+    This lives beside, rather than inside, the official SEC row. A broken or stale commercial
+    page can therefore make the enrichment unavailable without changing the authoritative
+    position itself.
+    """
+
+    filer_cik: str
+    stock_ticker: TickerSymbol
+    quarter_end: date
+    stock_name: str | None = Field(default=None, max_length=255)
+    previous_pct_portfolio: PortfolioPercent | None = None
+    rank: int | None = Field(default=None, ge=1)
+    reported_pct_change_shares: InstitutionalMetric | None = None
+    quarter_first_owned: str | None = Field(default=None, max_length=30)
+    estimated_avg_price: EstimatedPrice | None = None
+    source_name: str = Field(default="whalewisdom.com", min_length=1, max_length=100)
+    source_url: str = Field(min_length=1)
+    ingestion_method: IngestionMethod = IngestionMethod.BRIGHTDATA_SCRAPE
+    observed_at: datetime
+
+    @field_validator("filer_cik")
+    @classmethod
+    def _normalize_filer_cik(cls, value: str) -> str:
+        return normalize_cik(value)
+
+    @field_validator("observed_at")
+    @classmethod
+    def _normalize_observed_at(cls, value: datetime) -> datetime:
+        return require_utc(value)
+
+    @field_validator("source_url")
+    @classmethod
+    def _require_web_url(cls, value: str) -> str:
+        if not value.startswith(("http://", "https://")):
+            raise ValueError("source_url must start with http:// or https://")
+        return value
+
+
 class PipelineHealthEvent(_StrictModel):
     """Something that happened to a collector, as shown in the health feed.
 

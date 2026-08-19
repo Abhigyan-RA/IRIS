@@ -22,7 +22,9 @@ from datetime import date, datetime
 from shadow_cpi.db.protocols import BulkExecutor, Row, SqlExecutor
 from shadow_cpi.shared import (
     CommodityPrice,
+    InstitutionalFundSnapshot,
     InstitutionalHolding,
+    InstitutionalHoldingEnrichment,
     PipelineHealthEvent,
     Sector,
     normalize_cik,
@@ -116,6 +118,69 @@ ON CONFLICT (filer_cik, stock_ticker, quarter_end) DO UPDATE SET
     recorded_at = now()
 """
 
+_FUND_SNAPSHOT_COLUMNS = (
+    "filer_name, filer_cik, report_period, filing_date, reported_value_usd, "
+    "discretionary_aum_usd, top_10_concentration_pct, holdings_count, "
+    "portfolio_turnover_pct, whale_score, source_name, source_url, ingestion_method, observed_at"
+)
+
+_HOLDING_ENRICHMENT_COLUMNS = (
+    "filer_cik, stock_ticker, quarter_end, stock_name, previous_pct_portfolio, rank, "
+    "reported_pct_change_shares, quarter_first_owned, estimated_avg_price, source_name, "
+    "source_url, ingestion_method, observed_at"
+)
+
+_UPSERT_FUND_SNAPSHOT = f"""
+INSERT INTO institutional_fund_snapshots ({_FUND_SNAPSHOT_COLUMNS})
+VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+ON CONFLICT (filer_cik, report_period) DO UPDATE SET
+    filer_name = EXCLUDED.filer_name,
+    filing_date = EXCLUDED.filing_date,
+    reported_value_usd = EXCLUDED.reported_value_usd,
+    discretionary_aum_usd = EXCLUDED.discretionary_aum_usd,
+    top_10_concentration_pct = EXCLUDED.top_10_concentration_pct,
+    holdings_count = EXCLUDED.holdings_count,
+    portfolio_turnover_pct = EXCLUDED.portfolio_turnover_pct,
+    whale_score = EXCLUDED.whale_score,
+    source_name = EXCLUDED.source_name,
+    source_url = EXCLUDED.source_url,
+    ingestion_method = EXCLUDED.ingestion_method,
+    observed_at = EXCLUDED.observed_at
+"""
+
+_UPSERT_HOLDING_ENRICHMENT = f"""
+INSERT INTO institutional_holding_enrichments ({_HOLDING_ENRICHMENT_COLUMNS})
+VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+ON CONFLICT (filer_cik, stock_ticker, quarter_end) DO UPDATE SET
+    stock_name = EXCLUDED.stock_name,
+    previous_pct_portfolio = EXCLUDED.previous_pct_portfolio,
+    rank = EXCLUDED.rank,
+    reported_pct_change_shares = EXCLUDED.reported_pct_change_shares,
+    quarter_first_owned = EXCLUDED.quarter_first_owned,
+    estimated_avg_price = EXCLUDED.estimated_avg_price,
+    source_name = EXCLUDED.source_name,
+    source_url = EXCLUDED.source_url,
+    ingestion_method = EXCLUDED.ingestion_method,
+    observed_at = EXCLUDED.observed_at
+"""
+
+_SELECT_LATEST_HOLDINGS = (
+    f"SELECT {_HOLDING_COLUMNS} FROM institutional_holdings "
+    "WHERE quarter_end = (SELECT MAX(quarter_end) FROM institutional_holdings) "
+    "ORDER BY market_value_usd DESC NULLS LAST"
+)
+
+_SELECT_LATEST_FUND_SNAPSHOTS = (
+    f"SELECT DISTINCT ON (filer_cik) {_FUND_SNAPSHOT_COLUMNS} "
+    "FROM institutional_fund_snapshots ORDER BY filer_cik, report_period DESC"
+)
+
+_SELECT_LATEST_HOLDING_ENRICHMENTS = (
+    f"SELECT {_HOLDING_ENRICHMENT_COLUMNS} FROM institutional_holding_enrichments "
+    "WHERE quarter_end = (SELECT MAX(quarter_end) FROM institutional_holding_enrichments) "
+    "ORDER BY filer_cik, rank NULLS LAST, stock_ticker"
+)
+
 _EVENT_COLUMNS = "scraper_id, source_name, event_type, message, occurred_at"
 
 _INSERT_EVENT = f"""
@@ -156,6 +221,16 @@ def _to_holding(row: Row) -> InstitutionalHolding:
         The validated record.
     """
     return InstitutionalHolding.model_validate(dict(row))
+
+
+def _to_fund_snapshot(row: Row) -> InstitutionalFundSnapshot:
+    """Convert a database row into a validated fund summary."""
+    return InstitutionalFundSnapshot.model_validate(dict(row))
+
+
+def _to_holding_enrichment(row: Row) -> InstitutionalHoldingEnrichment:
+    """Convert a database row into validated holding metadata."""
+    return InstitutionalHoldingEnrichment.model_validate(dict(row))
 
 
 def _to_event(row: Row) -> PipelineHealthEvent:
@@ -347,6 +422,74 @@ class TimescaleHoldingsRepository:
                 _SELECT_FILER_HOLDINGS_FOR_QUARTER, (cik, quarter_end)
             )
         return [_to_holding(row) for row in rows]
+
+    async def upsert_fund_snapshots(self, snapshots: Sequence[InstitutionalFundSnapshot]) -> int:
+        """Store fund-quarter summaries separately from official holdings."""
+        if not snapshots:
+            return 0
+        rows = [
+            (
+                row.filer_name,
+                row.filer_cik,
+                row.report_period,
+                row.filing_date,
+                row.reported_value_usd,
+                row.discretionary_aum_usd,
+                row.top_10_concentration_pct,
+                row.holdings_count,
+                row.portfolio_turnover_pct,
+                row.whale_score,
+                row.source_name,
+                row.source_url,
+                row.ingestion_method.value,
+                row.observed_at,
+            )
+            for row in snapshots
+        ]
+        await self._executor.execute_many(_UPSERT_FUND_SNAPSHOT, rows)
+        return len(rows)
+
+    async def upsert_holding_enrichments(
+        self, enrichments: Sequence[InstitutionalHoldingEnrichment]
+    ) -> int:
+        """Store human-readable holding fields without changing the SEC row."""
+        if not enrichments:
+            return 0
+        rows = [
+            (
+                row.filer_cik,
+                row.stock_ticker,
+                row.quarter_end,
+                row.stock_name,
+                row.previous_pct_portfolio,
+                row.rank,
+                row.reported_pct_change_shares,
+                row.quarter_first_owned,
+                row.estimated_avg_price,
+                row.source_name,
+                row.source_url,
+                row.ingestion_method.value,
+                row.observed_at,
+            )
+            for row in enrichments
+        ]
+        await self._executor.execute_many(_UPSERT_HOLDING_ENRICHMENT, rows)
+        return len(rows)
+
+    async def latest_holdings(self) -> list[InstitutionalHolding]:
+        """Return all official positions from the newest quarter present."""
+        rows = await self._executor.fetch_all(_SELECT_LATEST_HOLDINGS)
+        return [_to_holding(row) for row in rows]
+
+    async def latest_fund_snapshots(self) -> list[InstitutionalFundSnapshot]:
+        """Return the newest enrichment summary for every configured fund."""
+        rows = await self._executor.fetch_all(_SELECT_LATEST_FUND_SNAPSHOTS)
+        return [_to_fund_snapshot(row) for row in rows]
+
+    async def latest_holding_enrichments(self) -> list[InstitutionalHoldingEnrichment]:
+        """Return holding metadata from the newest enriched quarter."""
+        rows = await self._executor.fetch_all(_SELECT_LATEST_HOLDING_ENRICHMENTS)
+        return [_to_holding_enrichment(row) for row in rows]
 
 
 class TimescaleHealthEventRepository:

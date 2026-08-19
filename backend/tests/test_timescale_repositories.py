@@ -16,7 +16,9 @@ from shadow_cpi.db.timescale.repositories import (
 from shadow_cpi.shared import (
     CommodityPrice,
     IngestionMethod,
+    InstitutionalFundSnapshot,
     InstitutionalHolding,
+    InstitutionalHoldingEnrichment,
     PipelineEventType,
     PipelineHealthEvent,
     Sector,
@@ -334,3 +336,105 @@ class TestHealthEventRepository:
 
         with pytest.raises(ValueError, match="limit"):
             await repository.recent_events(limit=100_000)
+
+
+FUND_SNAPSHOT_ROW: dict[str, object] = {
+    "filer_name": "Bridgewater Associates",
+    "filer_cik": "0001350694",
+    "report_period": date(2026, 6, 30),
+    "filing_date": date(2026, 8, 14),
+    "reported_value_usd": Decimal("20200000000.00"),
+    "discretionary_aum_usd": None,
+    "top_10_concentration_pct": None,
+    "holdings_count": 509,
+    "portfolio_turnover_pct": None,
+    "whale_score": None,
+    "source_name": "whalewisdom.com",
+    "source_url": "https://whalewisdom.com/filer/bridgewater-associates-lp",
+    "ingestion_method": "brightdata_scrape",
+    "observed_at": RECORDED_AT,
+}
+
+ENRICHMENT_ROW: dict[str, object] = {
+    "filer_cik": "0001350694",
+    "stock_ticker": "NVDA",
+    "quarter_end": date(2026, 6, 30),
+    "stock_name": "NVIDIA Corporation",
+    "previous_pct_portfolio": Decimal("6.100"),
+    "rank": 3,
+    "reported_pct_change_shares": Decimal("14.000"),
+    "quarter_first_owned": "Q1 2024",
+    "estimated_avg_price": Decimal("111.4200"),
+    "source_name": "whalewisdom.com",
+    "source_url": "https://whalewisdom.com/filer/bridgewater-associates-lp",
+    "ingestion_method": "brightdata_scrape",
+    "observed_at": RECORDED_AT,
+}
+
+
+def _fund_snapshot() -> InstitutionalFundSnapshot:
+    return InstitutionalFundSnapshot.model_validate(FUND_SNAPSHOT_ROW)
+
+
+def _enrichment() -> InstitutionalHoldingEnrichment:
+    return InstitutionalHoldingEnrichment.model_validate(ENRICHMENT_ROW)
+
+
+class TestInstitutionalEnrichmentRepository:
+    @pytest.mark.asyncio
+    async def test_writes_fund_snapshots_without_touching_official_holdings(self) -> None:
+        executor = FakeExecutor()
+
+        written = await TimescaleHoldingsRepository(executor).upsert_fund_snapshots(
+            [_fund_snapshot()]
+        )
+
+        assert written == 1
+        sql, rows = executor.batches[0]
+        assert "institutional_fund_snapshots" in sql
+        assert "institutional_holdings" not in sql
+        assert rows[0][1] == "0001350694"
+
+    @pytest.mark.asyncio
+    async def test_writes_holding_enrichment_separately(self) -> None:
+        executor = FakeExecutor()
+
+        written = await TimescaleHoldingsRepository(executor).upsert_holding_enrichments(
+            [_enrichment()]
+        )
+
+        assert written == 1
+        sql, rows = executor.batches[0]
+        assert "institutional_holding_enrichments" in sql
+        assert rows[0][1] == "NVDA"
+
+    @pytest.mark.asyncio
+    async def test_reads_every_official_holding_from_the_newest_quarter(self) -> None:
+        executor = FakeExecutor([HOLDING_ROW])
+
+        holdings = await TimescaleHoldingsRepository(executor).latest_holdings()
+
+        sql, params = executor.statements[0]
+        assert "MAX(quarter_end)" in sql
+        assert params == ()
+        assert holdings[0].stock_ticker == "NVDA"
+
+    @pytest.mark.asyncio
+    async def test_reads_the_newest_snapshot_for_each_fund(self) -> None:
+        executor = FakeExecutor([FUND_SNAPSHOT_ROW])
+
+        snapshots = await TimescaleHoldingsRepository(executor).latest_fund_snapshots()
+
+        sql, _ = executor.statements[0]
+        assert "DISTINCT ON (filer_cik)" in sql
+        assert snapshots[0].holdings_count == 509
+
+    @pytest.mark.asyncio
+    async def test_reads_enrichment_from_the_newest_quarter(self) -> None:
+        executor = FakeExecutor([ENRICHMENT_ROW])
+
+        rows = await TimescaleHoldingsRepository(executor).latest_holding_enrichments()
+
+        sql, _ = executor.statements[0]
+        assert "MAX(quarter_end)" in sql
+        assert rows[0].stock_name == "NVIDIA Corporation"

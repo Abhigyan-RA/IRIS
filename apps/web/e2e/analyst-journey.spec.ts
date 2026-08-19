@@ -32,10 +32,16 @@ test.describe('the analyst journey', () => {
     // 3. Check how professional money is positioned.
     await page.getByRole('link', { name: 'Institutional sentiment' }).click();
 
-    await expect(page.getByRole('table')).toBeVisible();
-    await expect(page.getByRole('rowheader')).toContainText('Bridgewater Associates');
-    await expect(page.getByRole('table')).toContainText('+14.3%');
-    await expect(page.getByRole('table')).toContainText('2026-06-30');
+    const fundsTable = page.getByRole('table', { name: 'Currently stored funds' });
+    await expect(fundsTable).toBeVisible();
+    await expect(fundsTable.getByRole('rowheader')).toContainText('Bridgewater Associates');
+    await expect(page.getByText('Reporting quarter: 2026-06-30')).toBeVisible();
+
+    const holdersTable = page.getByRole('table', {
+      name: /Funds reporting a position in NVDA/,
+    });
+    await expect(holdersTable).toContainText('+14.3%');
+    await expect(holdersTable).toContainText('2026-06-30');
 
     // 4. Confirm the pipeline is honest about how the data was obtained.
     await page.getByRole('link', { name: 'Pipeline health' }).click();

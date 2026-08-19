@@ -103,6 +103,81 @@ export const holdersSchema = z.object({
   ),
 });
 
+export const institutionalOverviewSchema = z.object({
+  quarter_end: z.string().nullable(),
+  total_funds: z.number().int().nonnegative(),
+  total_stocks: z.number().int().nonnegative(),
+  total_positions: z.number().int().nonnegative(),
+  funds: z.array(
+    z.object({
+      filer_name: z.string(),
+      filer_cik: z.string(),
+      position_count: z.number().int().nonnegative(),
+      reported_value_usd: z.string(),
+      source_name: z.string(),
+      source_url: z.string().nullable(),
+      enrichment: z
+        .object({
+          report_period: z.string(),
+          filing_date: z.string().nullable(),
+          reported_value_usd: z.string().nullable(),
+          discretionary_aum_usd: z.string().nullable(),
+          top_10_concentration_pct: z.string().nullable(),
+          holdings_count: z.number().int().nonnegative().nullable(),
+          portfolio_turnover_pct: z.string().nullable(),
+          whale_score: z.string().nullable(),
+          source_name: z.string(),
+          source_url: z.string(),
+          observed_at: z.string(),
+        })
+        .nullable(),
+    }),
+  ),
+  stocks: z.array(
+    z.object({
+      stock_ticker: z.string(),
+      stock_name: z.string().nullable(),
+      holder_count: z.number().int().nonnegative(),
+      shares_held: z.number().int().nonnegative(),
+      market_value_usd: z.string(),
+      shares_change_qoq: z.number().int(),
+      enriched_positions: z.number().int().nonnegative(),
+    }),
+  ),
+  top_buys: z.array(
+    z.object({
+      filer_name: z.string(),
+      filer_cik: z.string(),
+      stock_ticker: z.string(),
+      shares_held: z.number().int().nonnegative(),
+      market_value_usd: z.string().nullable(),
+      shares_change_qoq: z.number().int(),
+      quarter_end: z.string(),
+      source_name: z.string(),
+      source_url: z.string().nullable(),
+    }),
+  ),
+  top_sells: z.array(
+    z.object({
+      filer_name: z.string(),
+      filer_cik: z.string(),
+      stock_ticker: z.string(),
+      shares_held: z.number().int().nonnegative(),
+      market_value_usd: z.string().nullable(),
+      shares_change_qoq: z.number().int(),
+      quarter_end: z.string(),
+      source_name: z.string(),
+      source_url: z.string().nullable(),
+    }),
+  ),
+  enrichment_coverage: z.object({
+    matched_funds: z.number().int().nonnegative(),
+    matched_positions: z.number().int().nonnegative(),
+    observed_at: z.string().nullable(),
+  }),
+  coverage_note: z.string(),
+});
+
 /** Recent collector activity. */
 export const healthFeedSchema = z.object({
   events: z.array(
@@ -135,6 +210,7 @@ export type RiskMapEntry = z.infer<typeof riskMapEntrySchema>;
 export type Trend = z.infer<typeof trendSchema>;
 export type Ripple = z.infer<typeof rippleSchema>;
 export type Holders = z.infer<typeof holdersSchema>;
+export type InstitutionalOverview = z.infer<typeof institutionalOverviewSchema>;
 export type HealthFeed = z.infer<typeof healthFeedSchema>;
 export type HealthEvent = HealthFeed['events'][number];
 export type CopilotAnswer = z.infer<typeof copilotAnswerSchema>;
@@ -231,6 +307,13 @@ export function getRipple(commodity: string, depth = 2): Promise<Ripple> {
  */
 export function getHolders(ticker: string): Promise<Holders> {
   return fetchFromApi(`/api/institutional/holders/${encodeURIComponent(ticker)}`, holdersSchema);
+}
+
+export function getInstitutionalOverview(): Promise<InstitutionalOverview> {
+  return fetchFromApi(
+    '/api/institutional/overview?fund_limit=1000&stock_limit=1000&mover_limit=100',
+    institutionalOverviewSchema,
+  );
 }
 
 /**

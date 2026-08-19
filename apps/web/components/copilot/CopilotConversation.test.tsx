@@ -1,6 +1,6 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiError, type CopilotAnswer } from '../../lib/api';
 import { CopilotConversation, SUGGESTED_QUESTIONS } from './CopilotConversation';
 
@@ -14,6 +14,18 @@ function answer(overrides: Partial<CopilotAnswer> = {}): CopilotAnswer {
 }
 
 describe('CopilotConversation', () => {
+  let scrollIntoViewMock: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    scrollIntoViewMock = vi.fn();
+    Element.prototype.scrollIntoView =
+      scrollIntoViewMock as unknown as typeof Element.prototype.scrollIntoView;
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   it('shows the question and then the answer', async () => {
     const ask = vi.fn().mockResolvedValue(answer());
     render(<CopilotConversation ask={ask} />);
@@ -103,7 +115,10 @@ describe('CopilotConversation', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Ask' }));
 
     expect(screen.getByRole('status')).toHaveTextContent('Reading the collected data');
-    release?.(answer());
+    await act(async () => {
+      release?.(answer());
+      await Promise.resolve();
+    });
   });
 
   it('reports a failure as an alert rather than silently doing nothing', async () => {
@@ -151,6 +166,59 @@ describe('CopilotConversation', () => {
 
     await waitFor(() => {
       expect(screen.getByLabelText('Your question')).toHaveValue('');
+    });
+  });
+
+  it('does not render a nested scrollable container for the conversation', () => {
+    render(<CopilotConversation ask={vi.fn().mockResolvedValue(answer())} />);
+
+    // The conversation list (ol) should not have overflow-y-auto or overflow-y-scroll,
+    // because the page-level scroll is responsible for scrolling.
+    const lists = screen.getAllByRole('list');
+    for (const list of lists) {
+      const style = window.getComputedStyle(list);
+      expect(style.overflowY).not.toBe('scroll');
+      expect(style.overflowY).not.toBe('auto');
+    }
+  });
+
+  it('scrolls the new user turn into view after submitting', async () => {
+    let release: ((value: CopilotAnswer) => void) | undefined;
+    const ask = vi.fn().mockReturnValue(
+      new Promise<CopilotAnswer>((resolve) => {
+        release = resolve;
+      }),
+    );
+    render(<CopilotConversation ask={ask} />);
+
+    await userEvent.type(screen.getByLabelText('Your question'), 'what is copper doing');
+    await userEvent.click(screen.getByRole('button', { name: 'Ask' }));
+
+    await waitFor(() => {
+      expect(scrollIntoViewMock).toHaveBeenCalled();
+    });
+
+    await act(async () => {
+      release?.(answer());
+      await Promise.resolve();
+    });
+  });
+
+  it('scrolls the new answer into view after it arrives', async () => {
+    const ask = vi.fn().mockResolvedValue(answer());
+    render(<CopilotConversation ask={ask} />);
+
+    await userEvent.type(screen.getByLabelText('Your question'), 'what is copper doing');
+    await userEvent.click(screen.getByRole('button', { name: 'Ask' }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/Copper is 4.52 USD per pound/)).toBeInTheDocument();
+    });
+
+    // After the answer appears, scrollIntoView should have been called again
+    // (once for user turn, once for answer)
+    await waitFor(() => {
+      expect(scrollIntoViewMock.mock.calls.length).toBeGreaterThanOrEqual(2);
     });
   });
 });

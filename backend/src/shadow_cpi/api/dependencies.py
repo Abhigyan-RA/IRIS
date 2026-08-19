@@ -23,7 +23,12 @@ from shadow_cpi.config import Settings
 if TYPE_CHECKING:
     from shadow_cpi.ai.copilot import CopilotAnswer
     from shadow_cpi.db.neo4j.repository import RippleLink
-    from shadow_cpi.db.protocols import HealthEventReader, HoldingsReader, PriceReader
+    from shadow_cpi.db.protocols import (
+        HealthEventReader,
+        HoldingsReader,
+        InstitutionalIntelligenceReader,
+        PriceReader,
+    )
     from shadow_cpi.ingestion.brightdata.self_heal import RunOutcome
 
 
@@ -79,6 +84,7 @@ class ApiDependencies:
     Attributes:
         prices: Reads price history.
         holdings: Reads quarterly fund disclosures.
+        institutional: Reads the latest official ledger plus separate enrichment.
         health_events: Reads the collector audit trail.
         graph: Reads supply-chain relationships.
         healer: Runs a collector on demand and repairs it if needed.
@@ -88,6 +94,7 @@ class ApiDependencies:
 
     prices: PriceReader | None = None
     holdings: HoldingsReader | None = None
+    institutional: InstitutionalIntelligenceReader | None = None
     health_events: HealthEventReader | None = None
     graph: SupplyChainReader | None = None
     healer: CollectorHealer | None = None
@@ -140,6 +147,20 @@ def require_prices(request: Request) -> PriceReader:
             detail="Price data is not available because no price store is configured",
         )
     return prices
+
+
+def require_institutional(request: Request) -> InstitutionalIntelligenceReader:
+    """Return the current institutional view or report it unavailable."""
+    institutional = get_dependencies(request).institutional
+    if institutional is None:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=(
+                "Institutional intelligence is not available because no "
+                "institutional store is configured"
+            ),
+        )
+    return institutional
 
 
 def require_holdings(request: Request) -> HoldingsReader:

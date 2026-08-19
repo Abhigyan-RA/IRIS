@@ -77,6 +77,7 @@ async def open_dependencies(  # pragma: no cover - requires live databases
                 yield ApiDependencies(
                     prices=prices,
                     holdings=holdings,
+                    institutional=holdings,
                     health_events=health_events,
                     graph=graph,
                     healer=SelfHealingStudioRunner(

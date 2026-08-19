@@ -123,6 +123,68 @@ const HOLDERS = {
   ],
 };
 
+const INSTITUTIONAL_OVERVIEW = {
+  quarter_end: '2026-06-30',
+  total_funds: 1,
+  total_stocks: 1,
+  total_positions: 1,
+  funds: [
+    {
+      filer_name: 'Bridgewater Associates',
+      filer_cik: '0001350694',
+      position_count: 1,
+      reported_value_usd: '144000000.00',
+      source_name: 'SEC EDGAR',
+      source_url: 'https://www.sec.gov/edgar/browse/?CIK=0001350694',
+      enrichment: {
+        report_period: '2026-06-30',
+        filing_date: '2026-08-14',
+        reported_value_usd: '144000000.00',
+        discretionary_aum_usd: null,
+        top_10_concentration_pct: '42.1',
+        holdings_count: 1,
+        portfolio_turnover_pct: null,
+        whale_score: null,
+        source_name: 'whalewisdom.com',
+        source_url: 'https://whalewisdom.com/filer/bridgewater-associates-lp',
+        observed_at: '2026-08-15T13:00:00Z',
+      },
+    },
+  ],
+  stocks: [
+    {
+      stock_ticker: 'NVDA',
+      stock_name: 'NVIDIA Corp',
+      holder_count: 1,
+      shares_held: 1_200_000,
+      market_value_usd: '144000000.00',
+      shares_change_qoq: 150_000,
+      enriched_positions: 1,
+    },
+  ],
+  top_buys: [
+    {
+      filer_name: 'Bridgewater Associates',
+      filer_cik: '0001350694',
+      stock_ticker: 'NVDA',
+      shares_held: 1_200_000,
+      market_value_usd: '144000000.00',
+      shares_change_qoq: 150_000,
+      quarter_end: '2026-06-30',
+      source_name: 'SEC EDGAR',
+      source_url: 'https://www.sec.gov/edgar/browse/?CIK=0001350694',
+    },
+  ],
+  top_sells: [],
+  enrichment_coverage: {
+    matched_funds: 1,
+    matched_positions: 1,
+    observed_at: '2026-08-15T13:00:00Z',
+  },
+  coverage_note:
+    'Official SEC 13F coverage includes every latest-quarter position currently stored; human-readable enrichment is limited to the configured WhaleWisdom watchlist. 13F reports are quarterly, delayed, long-only disclosures and do not show shorts.',
+};
+
 const HEALTH_FEED = {
   events: [
     {
@@ -171,6 +233,9 @@ function replyFor(path: string): unknown {
   }
   if (path.startsWith('/api/graph/ripple/')) {
     return RIPPLE;
+  }
+  if (path.startsWith('/api/institutional/overview')) {
+    return INSTITUTIONAL_OVERVIEW;
   }
   if (path.startsWith('/api/institutional/holders/')) {
     // Only the ticker this journey uses is known. Anything else answers as the real

@@ -15,7 +15,12 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
-from shadow_cpi.db.protocols import HealthEventWriter, HoldingsWriter, PriceWriter
+from shadow_cpi.db.protocols import (
+    HealthEventWriter,
+    HoldingsWriter,
+    InstitutionalEnrichmentWriter,
+    PriceWriter,
+)
 from shadow_cpi.ingestion.base import IngestionContext
 from shadow_cpi.ingestion.changes import HistoryChangeCalculator, PriceHistoryReader
 from shadow_cpi.ingestion.registry import SourceRegistry, default_registry
@@ -31,6 +36,7 @@ class CollectionOutcome:
         source_name: Where it reads from.
         prices_written: How many price records were stored.
         holdings_written: How many holding records were stored.
+        enrichments_written: How many fund and holding enrichment records were stored.
         skipped: True when the source was not run because it is not configured, which
             is a normal state for the sources whose credentials are optional.
         error: Plain-language reason the run failed, or None when it did not.
@@ -40,6 +46,7 @@ class CollectionOutcome:
     source_name: str
     prices_written: int = 0
     holdings_written: int = 0
+    enrichments_written: int = 0
     skipped: bool = False
     error: str | None = None
 
@@ -50,7 +57,7 @@ class CollectionOutcome:
         Returns:
             Prices plus holdings.
         """
-        return self.prices_written + self.holdings_written
+        return self.prices_written + self.holdings_written + self.enrichments_written
 
 
 @dataclass(frozen=True, slots=True)
@@ -64,11 +71,14 @@ class CollectionStores:
         prices: Where price records are stored.
         holdings: Where holding records are stored.
         events: Where the record of each run is written.
+        institutional: Where commercial enrichment is stored. Optional so official-only
+            deployments and existing tests do not need a commercial data path.
     """
 
     prices: PriceWriter
     holdings: HoldingsWriter
     events: HealthEventWriter
+    institutional: InstitutionalEnrichmentWriter | None = None
 
 
 class CollectionService:
@@ -97,6 +107,7 @@ class CollectionService:
         self._prices = stores.prices
         self._holdings = stores.holdings
         self._events = stores.events
+        self._institutional = stores.institutional
         self._changes = changes
 
     async def run_source(self, source_id: str) -> CollectionOutcome:
@@ -136,6 +147,14 @@ class CollectionService:
                 prices = await self._changes.fill(list(prices))
             prices_written = await self._prices.upsert_prices(prices)
             holdings_written = await self._holdings.upsert_holdings(result.holdings)
+            enrichments_written = 0
+            if self._institutional is not None:
+                enrichments_written += await self._institutional.upsert_fund_snapshots(
+                    result.fund_snapshots
+                )
+                enrichments_written += await self._institutional.upsert_holding_enrichments(
+                    result.holding_enrichments
+                )
         except Exception as error:
             reason = f"{type(error).__name__}: {error}"
             await self._record(source_id, source_name, PipelineEventType.COLLECTION_FAILED, reason)
@@ -145,13 +164,15 @@ class CollectionService:
             source_id,
             source_name,
             PipelineEventType.SUCCESS,
-            f"[OK] stored {prices_written} prices and {holdings_written} holdings",
+            f"[OK] stored {prices_written} prices, {holdings_written} holdings, "
+            f"and {enrichments_written} institutional enrichments",
         )
         return CollectionOutcome(
             source_id=source_id,
             source_name=source_name,
             prices_written=prices_written,
             holdings_written=holdings_written,
+            enrichments_written=enrichments_written,
         )
 
     async def run_all(self) -> list[CollectionOutcome]:

@@ -151,6 +151,12 @@ class SelfHealingStudioRunner:
             f"[AUTO-HEALING] repair requested for: {', '.join(verdict.missing_fields)}",
         )
 
+        # Live refactors begin as ``running`` while the code-fixer and preview runner work.
+        # Treating that state as failure would make unattended repair fail at the exact moment
+        # it was needed. Wait for a draft or an applied fix before deciding what to do.
+        if status is HealStatus.RUNNING:
+            status = await self._api.wait_for_heal(collector_id)
+
         if status is HealStatus.FAILED:
             return await self._fail(
                 collector_id, source_name, "the repair could not be started", verdict.missing_fields
