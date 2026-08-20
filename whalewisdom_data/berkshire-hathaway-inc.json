@@ -1,0 +1,231 @@
+[
+  {
+    "holdings": [
+      {
+        "ticker": "AAPL",
+        "sector": "INFORMATION TECHNOLOGY",
+        "shares_held": 227917808,
+        "market_value": 65950296923,
+        "percent_of_portfolio": "22.04%",
+        "previous_percent_of_portfolio": "21.99%",
+        "change_in_shares": "No Change"
+      },
+      {
+        "ticker": "AXP",
+        "sector": "FINANCE",
+        "shares_held": 151610700,
+        "market_value": 51282319275,
+        "percent_of_portfolio": "17.14%",
+        "previous_percent_of_portfolio": "17.43%",
+        "change_in_shares": "No Change"
+      },
+      {
+        "ticker": "KO",
+        "sector": "CONSUMER STAPLES",
+        "shares_held": 400000000,
+        "market_value": 32508000000,
+        "percent_of_portfolio": "10.86%",
+        "previous_percent_of_portfolio": "11.56%",
+        "change_in_shares": "No Change"
+      },
+      {
+        "ticker": "GOOGL",
+        "sector": "COMMUNICATIONS",
+        "shares_held": 78791167,
+        "market_value": 28157599351,
+        "percent_of_portfolio": "9.41%",
+        "previous_percent_of_portfolio": "5.93%",
+        "change_in_shares": "24,541,369"
+      },
+      {
+        "ticker": "BAC",
+        "sector": "FINANCE",
+        "shares_held": 483394015,
+        "market_value": 27543790975,
+        "percent_of_portfolio": "9.20%",
+        "previous_percent_of_portfolio": "9.52%",
+        "change_in_shares": "-30,230,150"
+      },
+      {
+        "ticker": "CVX",
+        "sector": "ENERGY",
+        "shares_held": 84375856,
+        "market_value": 13986141890,
+        "percent_of_portfolio": "4.67%",
+        "previous_percent_of_portfolio": "6.64%",
+        "change_in_shares": "No Change"
+      },
+      {
+        "ticker": "OXY",
+        "sector": "ENERGY",
+        "shares_held": 264941431,
+        "market_value": 12868205304,
+        "percent_of_portfolio": "4.30%",
+        "previous_percent_of_portfolio": "6.55%",
+        "change_in_shares": "No Change"
+      },
+      {
+        "ticker": "CB",
+        "sector": "FINANCE",
+        "shares_held": 34249183,
+        "market_value": 11670066615,
+        "percent_of_portfolio": "3.90%",
+        "previous_percent_of_portfolio": "4.24%",
+        "change_in_shares": "No Change"
+      },
+      {
+        "ticker": "MCO",
+        "sector": "FINANCE",
+        "shares_held": 24669778,
+        "market_value": 11173435852,
+        "percent_of_portfolio": "3.73%",
+        "previous_percent_of_portfolio": "4.09%",
+        "change_in_shares": "No Change"
+      },
+      {
+        "ticker": "GOOG",
+        "sector": "COMMUNICATIONS",
+        "shares_held": 27188433,
+        "market_value": 9606489032,
+        "percent_of_portfolio": "3.21%",
+        "previous_percent_of_portfolio": "0.39%",
+        "change_in_shares": "23,603,218"
+      },
+      {
+        "ticker": "KHC",
+        "sector": "CONSUMER STAPLES",
+        "shares_held": 325634818,
+        "market_value": 7691494401,
+        "percent_of_portfolio": "2.57%",
+        "previous_percent_of_portfolio": "2.78%",
+        "change_in_shares": "No Change"
+      },
+      {
+        "ticker": "DVA",
+        "sector": "HEALTH CARE",
+        "shares_held": 28697229,
+        "market_value": 6889917710,
+        "previous_percent_of_portfolio": "2.15%",
+        "change_in_shares": "Change from Form 4 filing"
+      },
+      {
+        "ticker": "DAL",
+        "sector": "TRANSPORTS",
+        "shares_held": 57320000,
+        "market_value": 5368591200,
+        "percent_of_portfolio": "1.79%",
+        "previous_percent_of_portfolio": "1.01%",
+        "change_in_shares": "17,510,544"
+      },
+      {
+        "ticker": "SIRI",
+        "sector": "COMMUNICATIONS",
+        "shares_held": 124807117,
+        "market_value": 3686802237,
+        "percent_of_portfolio": "1.23%",
+        "previous_percent_of_portfolio": "1.09%",
+        "change_in_shares": "No Change"
+      },
+      {
+        "ticker": "VRSN",
+        "sector": "COMMUNICATIONS",
+        "shares_held": 8989880,
+        "market_value": 2261494212,
+        "percent_of_portfolio": "0.76%",
+        "previous_percent_of_portfolio": "0.85%",
+        "change_in_shares": "No Change"
+      },
+      {
+        "ticker": "KR",
+        "sector": "CONSUMER STAPLES",
+        "shares_held": 39000000,
+        "market_value": 2165670000,
+        "percent_of_portfolio": "0.72%",
+        "previous_percent_of_portfolio": "1.38%",
+        "change_in_shares": "-11,000,000"
+      },
+      {
+        "ticker": "ALLY",
+        "sector": "FINANCE",
+        "shares_held": 27000000,
+        "market_value": 1240650000,
+        "percent_of_portfolio": "0.41%",
+        "previous_percent_of_portfolio": "0.43%",
+        "change_in_shares": "-2,000,000"
+      },
+      {
+        "ticker": "LEN",
+        "sector": "CONSUMER DISCRETIONARY",
+        "shares_held": 13111741,
+        "market_value": 1186481443,
+        "percent_of_portfolio": "0.40%",
+        "previous_percent_of_portfolio": "0.33%",
+        "change_in_shares": "3,012,099"
+      },
+      {
+        "ticker": "LLYVK",
+        "sector": "COMMUNICATIONS",
+        "shares_held": 10587143,
+        "market_value": 1118425787,
+        "percent_of_portfolio": "0.37%",
+        "previous_percent_of_portfolio": "0.38%",
+        "change_in_shares": "No Change"
+      },
+      {
+        "ticker": "NYT",
+        "sector": "COMMUNICATIONS",
+        "shares_held": 15700000,
+        "market_value": 1098686000,
+        "percent_of_portfolio": "0.37%",
+        "previous_percent_of_portfolio": "0.48%",
+        "change_in_shares": "553,465"
+      },
+      {
+        "ticker": "COF",
+        "sector": "FINANCE",
+        "shares_held": 3000000,
+        "market_value": 601860000,
+        "percent_of_portfolio": "0.20%",
+        "previous_percent_of_portfolio": "0.50%",
+        "change_in_shares": "-4,150,000"
+      },
+      {
+        "ticker": "LLYVA",
+        "sector": "COMMUNICATIONS",
+        "shares_held": 4986588,
+        "market_value": 504941901,
+        "percent_of_portfolio": "0.17%",
+        "previous_percent_of_portfolio": "0.17%",
+        "change_in_shares": "No Change"
+      },
+      {
+        "ticker": "LPX",
+        "sector": "MATERIALS",
+        "shares_held": 5664793,
+        "market_value": 445592617,
+        "percent_of_portfolio": "0.15%",
+        "previous_percent_of_portfolio": "0.16%",
+        "change_in_shares": "No Change"
+      },
+      {
+        "ticker": "NUE",
+        "sector": "MATERIALS",
+        "shares_held": 1857752,
+        "market_value": 413814258,
+        "percent_of_portfolio": "0.14%",
+        "previous_percent_of_portfolio": "0.25%",
+        "change_in_shares": "-2,049,323"
+      },
+      {
+        "ticker": "M",
+        "sector": "CONSUMER DISCRETIONARY",
+        "shares_held": 7347426,
+        "market_value": 173031882,
+        "percent_of_portfolio": "0.06%",
+        "previous_percent_of_portfolio": "0.02%",
+        "change_in_shares": "4,309,071"
+      }
+    ],
+    "input": { "url": "https://whalewisdom.com/filer/berkshire-hathaway-inc" }
+  }
+]

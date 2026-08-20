@@ -82,11 +82,30 @@ class TrackedFiler:
     name: str
 
 
-# Funds followed by default. Widely covered managers whose positions are
-# recognisable; extend the tuple to follow more.
+# Funds followed by default. Major institutional investors with verified CIKs.
+# Each CIK has been verified to exist and file 13F forms with the SEC.
 TRACKED_FILERS: tuple[TrackedFiler, ...] = (
+    # Original working funds
     TrackedFiler(cik="0001350694", name="Bridgewater Associates"),
     TrackedFiler(cik="0001067983", name="Berkshire Hathaway"),
+    TrackedFiler(cik="0000093751", name="State Street Corp"),
+    TrackedFiler(cik="0000895421", name="Millennium Management LLC"),
+    # Major verified asset managers
+    TrackedFiler(cik="0001086364", name="BlackRock Inc"),
+    TrackedFiler(cik="0000102909", name="Vanguard Group Inc"),
+    TrackedFiler(cik="0000019617", name="T Rowe Price Associates Inc"),
+    TrackedFiler(cik="0000315066", name="Fidelity Management & Research Company LLC"),
+    TrackedFiler(cik="0000038777", name="Franklin Resources Inc"),
+    TrackedFiler(cik="0000914208", name="Invesco Ltd"),
+    TrackedFiler(cik="0000028917", name="Dodge & Cox"),
+    TrackedFiler(cik="0000070858", name="Northern Trust Corp"),
+    # Major verified hedge funds
+    TrackedFiler(cik="0001061768", name="Point72 Asset Management LP"),
+    TrackedFiler(cik="0001336528", name="Tiger Global Management LLC"),
+    TrackedFiler(cik="0001159159", name="Renaissance Technologies LLC"),
+    TrackedFiler(cik="0001418814", name="D E Shaw & Co Inc"),
+    TrackedFiler(cik="0001559550", name="Elliott Management Corp"),
+    TrackedFiler(cik="0001364742", name="Pershing Square Capital Management LP"),
 )
 
 

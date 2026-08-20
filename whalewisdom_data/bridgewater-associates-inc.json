@@ -1,0 +1,232 @@
+[
+  {
+    "holdings": [
+      {
+        "ticker": "SPY",
+        "sector": "FINANCE",
+        "shares_held": 5320308,
+        "market_value": 3973046405,
+        "percent_of_portfolio": "16.30%",
+        "previous_percent_of_portfolio": "12.67%",
+        "change_in_shares": "955,446"
+      },
+      {
+        "ticker": "IVV",
+        "sector": "FINANCE",
+        "shares_held": 3002286,
+        "market_value": 2248381963,
+        "percent_of_portfolio": "9.22%",
+        "previous_percent_of_portfolio": "7.81%",
+        "change_in_shares": "323,202"
+      },
+      {
+        "ticker": "NVDA",
+        "sector": "INFORMATION TECHNOLOGY",
+        "shares_held": 3866195,
+        "market_value": 773586958,
+        "percent_of_portfolio": "3.17%",
+        "previous_percent_of_portfolio": "3.65%",
+        "change_in_shares": "-826,808"
+      },
+      {
+        "ticker": "AVGO",
+        "sector": "INFORMATION TECHNOLOGY",
+        "shares_held": 1317923,
+        "market_value": 497845413,
+        "percent_of_portfolio": "2.04%",
+        "previous_percent_of_portfolio": "2.54%",
+        "change_in_shares": "-517,457"
+      },
+      {
+        "ticker": "AMZN",
+        "sector": "CONSUMER DISCRETIONARY",
+        "shares_held": 2025481,
+        "market_value": 482753142,
+        "percent_of_portfolio": "1.98%",
+        "previous_percent_of_portfolio": "4.08%",
+        "change_in_shares": "-2,363,230"
+      },
+      {
+        "ticker": "GOOGL",
+        "sector": "COMMUNICATIONS",
+        "shares_held": 1322176,
+        "market_value": 472506037,
+        "percent_of_portfolio": "1.94%",
+        "previous_percent_of_portfolio": "2.56%",
+        "change_in_shares": "-675,498"
+      },
+      {
+        "ticker": "LRCX",
+        "sector": "INFORMATION TECHNOLOGY",
+        "shares_held": 938224,
+        "market_value": 406560606,
+        "percent_of_portfolio": "1.67%",
+        "previous_percent_of_portfolio": "1.50%",
+        "change_in_shares": "-633,005"
+      },
+      {
+        "ticker": "VOO",
+        "sector": "FINANCE",
+        "shares_held": 458381,
+        "market_value": 314820655,
+        "percent_of_portfolio": "1.29%",
+        "previous_percent_of_portfolio": "0.42%",
+        "change_in_shares": "299,753"
+      },
+      {
+        "ticker": "AMD",
+        "sector": "INFORMATION TECHNOLOGY",
+        "shares_held": 538632,
+        "market_value": 312896715,
+        "percent_of_portfolio": "1.28%",
+        "previous_percent_of_portfolio": "1.17%",
+        "change_in_shares": "-754,135"
+      },
+      {
+        "ticker": "EWY",
+        "sector": "FINANCE",
+        "shares_held": 1384772,
+        "market_value": 279585467,
+        "percent_of_portfolio": "1.15%",
+        "previous_percent_of_portfolio": "0.97%",
+        "change_in_shares": "-381,492"
+      },
+      {
+        "ticker": "MSFT",
+        "sector": "INFORMATION TECHNOLOGY",
+        "shares_held": 711896,
+        "market_value": 265551446,
+        "percent_of_portfolio": "1.09%",
+        "previous_percent_of_portfolio": "1.79%",
+        "change_in_shares": "-373,083"
+      },
+      {
+        "ticker": "NEM",
+        "sector": "MATERIALS",
+        "shares_held": 2695170,
+        "market_value": 251728878,
+        "percent_of_portfolio": "1.03%",
+        "previous_percent_of_portfolio": "1.12%",
+        "change_in_shares": "378,529"
+      },
+      {
+        "ticker": "AMAT",
+        "sector": "INFORMATION TECHNOLOGY",
+        "shares_held": 291426,
+        "market_value": 210700998,
+        "percent_of_portfolio": "0.86%",
+        "previous_percent_of_portfolio": "0.85%",
+        "change_in_shares": "-268,492"
+      },
+      {
+        "ticker": "ORCL",
+        "sector": "INFORMATION TECHNOLOGY",
+        "shares_held": 1432967,
+        "market_value": 210001314,
+        "percent_of_portfolio": "0.86%",
+        "previous_percent_of_portfolio": "1.05%",
+        "change_in_shares": "-159,102"
+      },
+      {
+        "ticker": "STX",
+        "sector": "INFORMATION TECHNOLOGY",
+        "shares_held": 199822,
+        "market_value": 192828230,
+        "percent_of_portfolio": "0.79%",
+        "previous_percent_of_portfolio": "0.58%",
+        "change_in_shares": "-129,295"
+      },
+      {
+        "ticker": "JNJ",
+        "sector": "HEALTH CARE",
+        "shares_held": 669135,
+        "market_value": 169940216,
+        "percent_of_portfolio": "0.70%",
+        "previous_percent_of_portfolio": "0.76%",
+        "change_in_shares": "-27,749"
+      },
+      {
+        "ticker": "VWO",
+        "sector": "FINANCE",
+        "shares_held": 2746819,
+        "market_value": 163957626,
+        "percent_of_portfolio": "0.67%",
+        "previous_percent_of_portfolio": "0.66%",
+        "change_in_shares": "25,079"
+      },
+      {
+        "ticker": "GEV",
+        "sector": "INDUSTRIALS",
+        "shares_held": 122768,
+        "market_value": 144235212,
+        "percent_of_portfolio": "0.59%",
+        "previous_percent_of_portfolio": "1.69%",
+        "change_in_shares": "-312,129"
+      },
+      {
+        "ticker": "UNP",
+        "sector": "TRANSPORTS",
+        "shares_held": 514266,
+        "market_value": 139880352,
+        "percent_of_portfolio": "0.57%",
+        "previous_percent_of_portfolio": "0.58%",
+        "change_in_shares": "-18,584"
+      },
+      {
+        "ticker": "MU",
+        "sector": "INFORMATION TECHNOLOGY",
+        "shares_held": 116666,
+        "market_value": 134666397,
+        "percent_of_portfolio": "0.55%",
+        "previous_percent_of_portfolio": "2.23%",
+        "change_in_shares": "-1,359,038"
+      },
+      {
+        "ticker": "MBB",
+        "sector": "FINANCE",
+        "shares_held": 1386800,
+        "market_value": 131080336,
+        "percent_of_portfolio": "0.54%",
+        "previous_percent_of_portfolio": "0.58%",
+        "change_in_shares": "26,800"
+      },
+      {
+        "ticker": "MO",
+        "sector": "CONSUMER STAPLES",
+        "shares_held": 1727216,
+        "market_value": 124273191,
+        "percent_of_portfolio": "0.51%",
+        "previous_percent_of_portfolio": "0.50%",
+        "change_in_shares": "21,705"
+      },
+      {
+        "ticker": "APH",
+        "sector": "INFORMATION TECHNOLOGY",
+        "shares_held": 697612,
+        "market_value": 123002948,
+        "percent_of_portfolio": "0.50%",
+        "previous_percent_of_portfolio": "0.49%",
+        "change_in_shares": "-165,436"
+      },
+      {
+        "ticker": "ASML",
+        "sector": "INFORMATION TECHNOLOGY",
+        "shares_held": 61675,
+        "market_value": 122698712,
+        "percent_of_portfolio": "0.50%",
+        "previous_percent_of_portfolio": "0.54%",
+        "change_in_shares": "-30,521"
+      },
+      {
+        "ticker": "B",
+        "sector": "MATERIALS",
+        "shares_held": 3304836,
+        "market_value": 121387233,
+        "percent_of_portfolio": "0.50%",
+        "previous_percent_of_portfolio": "0.56%",
+        "change_in_shares": "225,593"
+      }
+    ],
+    "input": { "url": "https://whalewisdom.com/filer/bridgewater-associates-inc" }
+  }
+]

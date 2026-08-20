@@ -1,0 +1,232 @@
+[
+  {
+    "holdings": [
+      {
+        "ticker": "NVDA",
+        "sector": "INFORMATION TECHNOLOGY",
+        "shares_held": 369829781,
+        "market_value": 73999242000,
+        "percent_of_portfolio": "7.40%",
+        "previous_percent_of_portfolio": "7.46%",
+        "change_in_shares": "-272,907"
+      },
+      {
+        "ticker": "AAPL",
+        "sector": "INFORMATION TECHNOLOGY",
+        "shares_held": 159811362,
+        "market_value": 46243017000,
+        "percent_of_portfolio": "4.63%",
+        "previous_percent_of_portfolio": "5.88%",
+        "change_in_shares": "-40,615,258"
+      },
+      {
+        "ticker": "GOOGL",
+        "sector": "COMMUNICATIONS",
+        "shares_held": 101316099,
+        "market_value": 36207335000,
+        "percent_of_portfolio": "3.62%",
+        "previous_percent_of_portfolio": "2.68%",
+        "change_in_shares": "20,809,301"
+      },
+      {
+        "ticker": "MSFT",
+        "sector": "INFORMATION TECHNOLOGY",
+        "shares_held": 87287163,
+        "market_value": 32559858000,
+        "percent_of_portfolio": "3.26%",
+        "previous_percent_of_portfolio": "5.02%",
+        "change_in_shares": "-29,955,771"
+      },
+      {
+        "ticker": "AVGO",
+        "sector": "INFORMATION TECHNOLOGY",
+        "shares_held": 82851970,
+        "market_value": 31297332000,
+        "percent_of_portfolio": "3.13%",
+        "previous_percent_of_portfolio": "3.02%",
+        "change_in_shares": "-1,618,784"
+      },
+      {
+        "ticker": "AMZN",
+        "sector": "CONSUMER DISCRETIONARY",
+        "shares_held": 108907465,
+        "market_value": 25957006000,
+        "percent_of_portfolio": "2.60%",
+        "previous_percent_of_portfolio": "2.96%",
+        "change_in_shares": "-14,091,485"
+      },
+      {
+        "ticker": "GOOG",
+        "sector": "COMMUNICATIONS",
+        "shares_held": 59258327,
+        "market_value": 20937746000,
+        "percent_of_portfolio": "2.09%",
+        "previous_percent_of_portfolio": "2.25%",
+        "change_in_shares": "-8,588,253"
+      },
+      {
+        "ticker": "AMD",
+        "sector": "INFORMATION TECHNOLOGY",
+        "shares_held": 35938258,
+        "market_value": 20876894000,
+        "percent_of_portfolio": "2.09%",
+        "previous_percent_of_portfolio": "0.68%",
+        "change_in_shares": "7,091,788"
+      },
+      {
+        "ticker": "META",
+        "sector": "COMMUNICATIONS",
+        "shares_held": 30793354,
+        "market_value": 17345589000,
+        "percent_of_portfolio": "1.74%",
+        "previous_percent_of_portfolio": "2.18%",
+        "change_in_shares": "-2,191,986"
+      },
+      {
+        "ticker": "LLY",
+        "sector": "HEALTH CARE",
+        "shares_held": 13911839,
+        "market_value": 16686278000,
+        "percent_of_portfolio": "1.67%",
+        "previous_percent_of_portfolio": "1.49%",
+        "change_in_shares": "-80,385"
+      },
+      {
+        "ticker": "MU",
+        "sector": "INFORMATION TECHNOLOGY",
+        "shares_held": 14165845,
+        "market_value": 16351494000,
+        "percent_of_portfolio": "1.64%",
+        "previous_percent_of_portfolio": "0.21%",
+        "change_in_shares": "8,827,282"
+      },
+      {
+        "ticker": "V",
+        "sector": "FINANCE",
+        "shares_held": 35472043,
+        "market_value": 12170104000,
+        "percent_of_portfolio": "1.22%",
+        "previous_percent_of_portfolio": "1.44%",
+        "change_in_shares": "-5,603,826"
+      },
+      {
+        "ticker": "LRCX",
+        "sector": "INFORMATION TECHNOLOGY",
+        "shares_held": 24596295,
+        "market_value": 10658313000,
+        "percent_of_portfolio": "1.07%",
+        "previous_percent_of_portfolio": "0.33%",
+        "change_in_shares": "11,356,938"
+      },
+      {
+        "ticker": "TSLA",
+        "sector": "CONSUMER DISCRETIONARY",
+        "shares_held": 25141239,
+        "market_value": 10574406000,
+        "percent_of_portfolio": "1.06%",
+        "previous_percent_of_portfolio": "1.07%",
+        "change_in_shares": "332,357"
+      },
+      {
+        "ticker": "UNH",
+        "sector": "HEALTH CARE",
+        "shares_held": 23153813,
+        "market_value": 9623420000,
+        "percent_of_portfolio": "0.96%",
+        "previous_percent_of_portfolio": "0.65%",
+        "change_in_shares": "2,279,867"
+      },
+      {
+        "ticker": "MA",
+        "sector": "FINANCE",
+        "shares_held": 18527027,
+        "market_value": 9515482000,
+        "percent_of_portfolio": "0.95%",
+        "previous_percent_of_portfolio": "1.07%",
+        "change_in_shares": "-47,683"
+      },
+      {
+        "ticker": "AMAT",
+        "sector": "INFORMATION TECHNOLOGY",
+        "shares_held": 12627555,
+        "market_value": 9129723000,
+        "percent_of_portfolio": "0.91%",
+        "previous_percent_of_portfolio": "0.24%",
+        "change_in_shares": "6,564,630"
+      },
+      {
+        "ticker": "JPM",
+        "sector": "FINANCE",
+        "shares_held": 27686080,
+        "market_value": 9062486000,
+        "percent_of_portfolio": "0.91%",
+        "previous_percent_of_portfolio": "0.93%",
+        "change_in_shares": "198,757"
+      },
+      {
+        "ticker": "GE",
+        "sector": "INDUSTRIALS",
+        "shares_held": 20622890,
+        "market_value": 7707394000,
+        "percent_of_portfolio": "0.77%",
+        "previous_percent_of_portfolio": "0.78%",
+        "change_in_shares": "-3,287,457"
+      },
+      {
+        "ticker": "INTC",
+        "sector": "INFORMATION TECHNOLOGY",
+        "shares_held": 53547772,
+        "market_value": 7476876000,
+        "percent_of_portfolio": "0.75%",
+        "previous_percent_of_portfolio": "0.27%",
+        "change_in_shares": "1,486,726"
+      },
+      {
+        "ticker": "NFLX",
+        "sector": "COMMUNICATIONS",
+        "shares_held": 93578816,
+        "market_value": 6681528000,
+        "percent_of_portfolio": "0.67%",
+        "previous_percent_of_portfolio": "1.10%",
+        "change_in_shares": "-5,452,976"
+      },
+      {
+        "ticker": "CAT",
+        "sector": "INDUSTRIALS",
+        "shares_held": 6171628,
+        "market_value": 6572168000,
+        "percent_of_portfolio": "0.66%",
+        "previous_percent_of_portfolio": "0.46%",
+        "change_in_shares": "589,610"
+      },
+      {
+        "ticker": "LIN",
+        "sector": "MATERIALS",
+        "shares_held": 11832240,
+        "market_value": 6140224000,
+        "percent_of_portfolio": "0.61%",
+        "previous_percent_of_portfolio": "0.56%",
+        "change_in_shares": "1,985,729"
+      },
+      {
+        "ticker": "JNJ",
+        "sector": "HEALTH CARE",
+        "shares_held": 22996878,
+        "market_value": 5840518000,
+        "percent_of_portfolio": "0.58%",
+        "previous_percent_of_portfolio": "0.47%",
+        "change_in_shares": "6,505,745"
+      },
+      {
+        "ticker": "APH",
+        "sector": "INFORMATION TECHNOLOGY",
+        "shares_held": 32011336,
+        "market_value": 5644239000,
+        "percent_of_portfolio": "0.56%",
+        "previous_percent_of_portfolio": "0.38%",
+        "change_in_shares": "5,824,431"
+      }
+    ],
+    "input": { "url": "https://whalewisdom.com/filer/price-t-rowe-associates-inc-md" }
+  }
+]

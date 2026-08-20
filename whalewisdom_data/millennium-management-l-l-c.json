@@ -1,0 +1,231 @@
+[
+  {
+    "holdings": [
+      {
+        "ticker": "IVV",
+        "sector": "FINANCE",
+        "shares_held": 14503932,
+        "market_value": 10861849635,
+        "percent_of_portfolio": "3.56%",
+        "previous_percent_of_portfolio": "3.19%",
+        "change_in_shares": "1,518,126"
+      },
+      {
+        "ticker": "IWM",
+        "sector": "FINANCE",
+        "shares_held": 33283000,
+        "market_value": 9999877350,
+        "percent_of_portfolio": "3.27%",
+        "previous_percent_of_portfolio": "3.75%",
+        "change_in_shares": "-6,886,200"
+      },
+      {
+        "ticker": "NVDA",
+        "sector": "INFORMATION TECHNOLOGY",
+        "shares_held": 25464200,
+        "market_value": 5095131778,
+        "percent_of_portfolio": "1.67%",
+        "previous_percent_of_portfolio": "1.55%",
+        "change_in_shares": "1,846,200"
+      },
+      {
+        "ticker": "IWM",
+        "sector": "FINANCE",
+        "shares_held": 14519000,
+        "market_value": 4362233550,
+        "percent_of_portfolio": "1.43%",
+        "previous_percent_of_portfolio": "1.12%",
+        "change_in_shares": "2,528,700"
+      },
+      {
+        "ticker": "QQQ",
+        "sector": "FINANCE",
+        "shares_held": 5422200,
+        "market_value": 3992908080,
+        "percent_of_portfolio": "1.31%",
+        "previous_percent_of_portfolio": "1.31%",
+        "change_in_shares": "-627,400"
+      },
+      {
+        "ticker": "SPY",
+        "sector": "FINANCE",
+        "shares_held": 4857109,
+        "market_value": 3627143288,
+        "percent_of_portfolio": "1.19%",
+        "previous_percent_of_portfolio": "0.15%",
+        "change_in_shares": "4,234,187"
+      },
+      {
+        "ticker": "SPY",
+        "sector": "FINANCE",
+        "shares_held": 4746200,
+        "market_value": 3544319774,
+        "percent_of_portfolio": "1.16%",
+        "previous_percent_of_portfolio": "0.39%",
+        "change_in_shares": "3,173,400"
+      },
+      {
+        "ticker": "MU",
+        "sector": "INFORMATION TECHNOLOGY",
+        "shares_held": 2824100,
+        "market_value": 3259830389,
+        "percent_of_portfolio": "1.07%",
+        "previous_percent_of_portfolio": "0.23%",
+        "change_in_shares": "1,004,400"
+      },
+      {
+        "ticker": "SPY",
+        "sector": "FINANCE",
+        "shares_held": 4309500,
+        "market_value": 3218205315,
+        "percent_of_portfolio": "1.05%",
+        "previous_percent_of_portfolio": "0.67%",
+        "change_in_shares": "1,576,200"
+      },
+      {
+        "ticker": "QQQ",
+        "sector": "FINANCE",
+        "shares_held": 4074700,
+        "market_value": 3000609080,
+        "percent_of_portfolio": "0.98%",
+        "previous_percent_of_portfolio": "0.86%",
+        "change_in_shares": "110,200"
+      },
+      {
+        "ticker": "SPCX",
+        "sector": "INDUSTRIALS",
+        "shares_held": 17604863,
+        "market_value": 2981723351,
+        "percent_of_portfolio": "0.98%",
+        "change_in_shares": "17,604,863"
+      },
+      {
+        "ticker": "AMD",
+        "sector": "INFORMATION TECHNOLOGY",
+        "shares_held": 4729800,
+        "market_value": 2747588118,
+        "percent_of_portfolio": "0.90%",
+        "previous_percent_of_portfolio": "0.40%",
+        "change_in_shares": "-546,100"
+      },
+      {
+        "ticker": "AAPL",
+        "sector": "INFORMATION TECHNOLOGY",
+        "shares_held": 9103300,
+        "market_value": 2634130888,
+        "percent_of_portfolio": "0.86%",
+        "previous_percent_of_portfolio": "0.83%",
+        "change_in_shares": "396,600"
+      },
+      {
+        "ticker": "AMZN",
+        "sector": "CONSUMER DISCRETIONARY",
+        "shares_held": 10636200,
+        "market_value": 2535031908,
+        "percent_of_portfolio": "0.83%",
+        "previous_percent_of_portfolio": "0.86%",
+        "change_in_shares": "-299,200"
+      },
+      {
+        "ticker": "NVDA",
+        "sector": "INFORMATION TECHNOLOGY",
+        "shares_held": 12157614,
+        "market_value": 2432616985,
+        "percent_of_portfolio": "0.80%",
+        "previous_percent_of_portfolio": "0.70%",
+        "change_in_shares": "1,571,967"
+      },
+      {
+        "ticker": "MSFT",
+        "sector": "INFORMATION TECHNOLOGY",
+        "shares_held": 5997300,
+        "market_value": 2237112846,
+        "percent_of_portfolio": "0.73%",
+        "previous_percent_of_portfolio": "0.96%",
+        "change_in_shares": "-881,600"
+      },
+      {
+        "ticker": "GOOGL",
+        "sector": "COMMUNICATIONS",
+        "shares_held": 6062600,
+        "market_value": 2166591362,
+        "percent_of_portfolio": "0.71%",
+        "previous_percent_of_portfolio": "0.71%",
+        "change_in_shares": "-497,500"
+      },
+      {
+        "ticker": "META",
+        "sector": "COMMUNICATIONS",
+        "shares_held": 3438600,
+        "market_value": 1936928994,
+        "percent_of_portfolio": "0.63%",
+        "previous_percent_of_portfolio": "0.78%",
+        "change_in_shares": "-178,100"
+      },
+      {
+        "ticker": "NSC",
+        "sector": "TRANSPORTS",
+        "shares_held": 5201728,
+        "market_value": 1636411612,
+        "percent_of_portfolio": "0.54%",
+        "previous_percent_of_portfolio": "0.50%",
+        "change_in_shares": "617,642"
+      },
+      {
+        "ticker": "MSFT",
+        "sector": "INFORMATION TECHNOLOGY",
+        "shares_held": 4240904,
+        "market_value": 1581942010,
+        "percent_of_portfolio": "0.52%",
+        "previous_percent_of_portfolio": "0.39%",
+        "change_in_shares": "1,442,727"
+      },
+      {
+        "ticker": "AAPL",
+        "sector": "INFORMATION TECHNOLOGY",
+        "shares_held": 5439653,
+        "market_value": 1574017992,
+        "percent_of_portfolio": "0.52%",
+        "previous_percent_of_portfolio": "0.58%",
+        "change_in_shares": "-586,907"
+      },
+      {
+        "ticker": "WBD",
+        "sector": "COMMUNICATIONS",
+        "shares_held": 57657575,
+        "market_value": 1537150949,
+        "percent_of_portfolio": "0.50%",
+        "previous_percent_of_portfolio": "0.45%",
+        "change_in_shares": "13,718,183"
+      },
+      {
+        "ticker": "NVDA",
+        "sector": "INFORMATION TECHNOLOGY",
+        "shares_held": 7547800,
+        "market_value": 1510239302,
+        "percent_of_portfolio": "0.49%",
+        "previous_percent_of_portfolio": "0.48%",
+        "change_in_shares": "168,900"
+      },
+      {
+        "ticker": "TSLA",
+        "sector": "CONSUMER DISCRETIONARY",
+        "shares_held": 3505700,
+        "market_value": 1474497420,
+        "percent_of_portfolio": "0.48%",
+        "previous_percent_of_portfolio": "0.69%",
+        "change_in_shares": "-1,404,100"
+      },
+      {
+        "ticker": "AAPL",
+        "sector": "INFORMATION TECHNOLOGY",
+        "shares_held": 4842300,
+        "market_value": 1401167928,
+        "percent_of_portfolio": "0.46%",
+        "previous_percent_of_portfolio": "0.50%",
+        "change_in_shares": "-382,800"
+      }
+    ],
+    "input": { "url": "https://whalewisdom.com/filer/millennium-management-l-l-c" }
+  }
+]

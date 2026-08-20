@@ -1,0 +1,232 @@
+[
+  {
+    "holdings": [
+      {
+        "ticker": "NVDA",
+        "sector": "INFORMATION TECHNOLOGY",
+        "shares_held": 1009783437,
+        "market_value": 202047567909,
+        "percent_of_portfolio": "5.99%",
+        "previous_percent_of_portfolio": "5.98%",
+        "change_in_shares": "15,897,836"
+      },
+      {
+        "ticker": "AAPL",
+        "sector": "INFORMATION TECHNOLOGY",
+        "shares_held": 615129929,
+        "market_value": 177993996255,
+        "percent_of_portfolio": "5.28%",
+        "previous_percent_of_portfolio": "5.28%",
+        "change_in_shares": "12,788,520"
+      },
+      {
+        "ticker": "MSFT",
+        "sector": "INFORMATION TECHNOLOGY",
+        "shares_held": 315653206,
+        "market_value": 117744958902,
+        "percent_of_portfolio": "3.49%",
+        "previous_percent_of_portfolio": "3.92%",
+        "change_in_shares": "8,944,917"
+      },
+      {
+        "ticker": "AMZN",
+        "sector": "CONSUMER DISCRETIONARY",
+        "shares_held": 397186958,
+        "market_value": 94665539570,
+        "percent_of_portfolio": "2.81%",
+        "previous_percent_of_portfolio": "2.81%",
+        "change_in_shares": "6,736,637"
+      },
+      {
+        "ticker": "GOOGL",
+        "sector": "COMMUNICATIONS",
+        "shares_held": 238977259,
+        "market_value": 85403303049,
+        "percent_of_portfolio": "2.53%",
+        "previous_percent_of_portfolio": "2.25%",
+        "change_in_shares": "12,718,127"
+      },
+      {
+        "ticker": "AVGO",
+        "sector": "INFORMATION TECHNOLOGY",
+        "shares_held": 196900541,
+        "market_value": 74379179363,
+        "percent_of_portfolio": "2.21%",
+        "previous_percent_of_portfolio": "2.05%",
+        "change_in_shares": "5,520,309"
+      },
+      {
+        "ticker": "GOOG",
+        "sector": "COMMUNICATIONS",
+        "shares_held": 190923442,
+        "market_value": 67458979762,
+        "percent_of_portfolio": "2.00%",
+        "previous_percent_of_portfolio": "1.84%",
+        "change_in_shares": "5,208,690"
+      },
+      {
+        "ticker": "MU",
+        "sector": "INFORMATION TECHNOLOGY",
+        "shares_held": 50075870,
+        "market_value": 57802075982,
+        "percent_of_portfolio": "1.71%",
+        "previous_percent_of_portfolio": "0.61%",
+        "change_in_shares": "-2,163,613"
+      },
+      {
+        "ticker": "META",
+        "sector": "COMMUNICATIONS",
+        "shares_held": 92033963,
+        "market_value": 51841811018,
+        "percent_of_portfolio": "1.54%",
+        "previous_percent_of_portfolio": "1.75%",
+        "change_in_shares": "3,510,123"
+      },
+      {
+        "ticker": "TSLA",
+        "sector": "CONSUMER DISCRETIONARY",
+        "shares_held": 117456756,
+        "market_value": 49402311574,
+        "percent_of_portfolio": "1.47%",
+        "previous_percent_of_portfolio": "1.47%",
+        "change_in_shares": "2,761,298"
+      },
+      {
+        "ticker": "LLY",
+        "sector": "HEALTH CARE",
+        "shares_held": 36215754,
+        "market_value": 43438261820,
+        "percent_of_portfolio": "1.29%",
+        "previous_percent_of_portfolio": "1.13%",
+        "change_in_shares": "605,752"
+      },
+      {
+        "ticker": "AMD",
+        "sector": "INFORMATION TECHNOLOGY",
+        "shares_held": 74361687,
+        "market_value": 43197447595,
+        "percent_of_portfolio": "1.28%",
+        "previous_percent_of_portfolio": "0.53%",
+        "change_in_shares": "-409,533"
+      },
+      {
+        "ticker": "JPM",
+        "sector": "FINANCE",
+        "shares_held": 125209293,
+        "market_value": 40984757878,
+        "percent_of_portfolio": "1.22%",
+        "previous_percent_of_portfolio": "1.26%",
+        "change_in_shares": "932,632"
+      },
+      {
+        "ticker": "BRK.B",
+        "sector": "FINANCE",
+        "shares_held": 75747788,
+        "market_value": 37903435637,
+        "percent_of_portfolio": "1.12%",
+        "previous_percent_of_portfolio": "1.23%",
+        "change_in_shares": "1,648,726"
+      },
+      {
+        "ticker": "CAT",
+        "sector": "INDUSTRIALS",
+        "shares_held": 34392316,
+        "market_value": 36624377308,
+        "percent_of_portfolio": "1.09%",
+        "previous_percent_of_portfolio": "0.85%",
+        "change_in_shares": "-488,288"
+      },
+      {
+        "ticker": "JNJ",
+        "sector": "HEALTH CARE",
+        "shares_held": 133776025,
+        "market_value": 33975097069,
+        "percent_of_portfolio": "1.01%",
+        "previous_percent_of_portfolio": "1.13%",
+        "change_in_shares": "299,737"
+      },
+      {
+        "ticker": "INTC",
+        "sector": "INFORMATION TECHNOLOGY",
+        "shares_held": 216849675,
+        "market_value": 30278720120,
+        "percent_of_portfolio": "0.90%",
+        "previous_percent_of_portfolio": "0.33%",
+        "change_in_shares": "2,528,657"
+      },
+      {
+        "ticker": "V",
+        "sector": "FINANCE",
+        "shares_held": 82872209,
+        "market_value": 28432626186,
+        "percent_of_portfolio": "0.84%",
+        "previous_percent_of_portfolio": "0.86%",
+        "change_in_shares": "566,194"
+      },
+      {
+        "ticker": "XOM",
+        "sector": "ENERGY",
+        "shares_held": 206811526,
+        "market_value": 28275271835,
+        "percent_of_portfolio": "0.84%",
+        "previous_percent_of_portfolio": "1.25%",
+        "change_in_shares": "-7,092,854"
+      },
+      {
+        "ticker": "AMAT",
+        "sector": "INFORMATION TECHNOLOGY",
+        "shares_held": 38240019,
+        "market_value": 27647533737,
+        "percent_of_portfolio": "0.82%",
+        "previous_percent_of_portfolio": "0.44%",
+        "change_in_shares": "733,069"
+      },
+      {
+        "ticker": "LRCX",
+        "sector": "INFORMATION TECHNOLOGY",
+        "shares_held": 60704130,
+        "market_value": 26320467878,
+        "percent_of_portfolio": "0.78%",
+        "previous_percent_of_portfolio": "0.44%",
+        "change_in_shares": "1,545,830"
+      },
+      {
+        "ticker": "CVX",
+        "sector": "ENERGY",
+        "shares_held": 148447634,
+        "market_value": 24606679812,
+        "percent_of_portfolio": "0.73%",
+        "previous_percent_of_portfolio": "1.09%",
+        "change_in_shares": "-4,690,282"
+      },
+      {
+        "ticker": "CSCO",
+        "sector": "INFORMATION TECHNOLOGY",
+        "shares_held": 197153062,
+        "market_value": 23157598663,
+        "percent_of_portfolio": "0.69%",
+        "previous_percent_of_portfolio": "0.52%",
+        "change_in_shares": "3,559,365"
+      },
+      {
+        "ticker": "WMT",
+        "sector": "CONSUMER STAPLES",
+        "shares_held": 188036646,
+        "market_value": 21297030526,
+        "percent_of_portfolio": "0.63%",
+        "previous_percent_of_portfolio": "0.80%",
+        "change_in_shares": "2,107,781"
+      },
+      {
+        "ticker": "MS",
+        "sector": "FINANCE",
+        "shares_held": 99560815,
+        "market_value": 20812192768,
+        "percent_of_portfolio": "0.62%",
+        "previous_percent_of_portfolio": "0.58%",
+        "change_in_shares": "-1,779,379"
+      }
+    ],
+    "input": { "url": "https://whalewisdom.com/filer/state-street-corp" }
+  }
+]
