@@ -49,6 +49,7 @@ const OVERVIEW: InstitutionalOverview = {
     {
       stock_ticker: 'AAPL',
       stock_name: 'Apple Inc',
+      sector: 'INFORMATION TECHNOLOGY',
       holder_count: 2,
       shares_held: 400,
       market_value_usd: '8000000000',
@@ -58,11 +59,23 @@ const OVERVIEW: InstitutionalOverview = {
     {
       stock_ticker: 'MSFT',
       stock_name: 'Microsoft Corp',
+      sector: 'INFORMATION TECHNOLOGY',
       holder_count: 1,
       shares_held: 50,
       market_value_usd: '1500000000',
       shares_change_qoq: -10,
       enriched_positions: 0,
+    },
+  ],
+  enrichment_only_funds: [
+    {
+      filer_name: 'State Street Corp',
+      filer_cik: '0000093751',
+      holdings_count: 25,
+      reported_value_usd: '1445691222216',
+      source_name: 'whalewisdom.com',
+      source_url: 'https://whalewisdom.com/filer/state-street-corp',
+      observed_at: '2026-02-16T12:00:00Z',
     },
   ],
   top_buys: [
@@ -93,6 +106,7 @@ const OVERVIEW: InstitutionalOverview = {
   ],
   enrichment_coverage: {
     matched_funds: 1,
+    enrichment_only_funds: 1,
     matched_positions: 1,
     observed_at: '2026-02-16T12:00:00Z',
   },
@@ -167,6 +181,34 @@ describe('InstitutionalOverviewPanel', () => {
     expect(screen.getByText(/Funds reporting a position in AAPL/)).toBeInTheDocument();
   });
 
+  it('lists watchlist funds that have no official filing, labelled as public-page data', () => {
+    render(<InstitutionalOverviewPanel overview={OVERVIEW} holders={HOLDERS} ticker="AAPL" />);
+
+    const table = screen.getByRole('table', {
+      name: /watchlist funds awaiting an official filing/i,
+    });
+    expect(within(table).getByText('State Street Corp')).toBeInTheDocument();
+    expect(within(table).getByText('25')).toBeInTheDocument();
+    expect(
+      within(table).getByRole('link', { name: /State Street Corp public page/ }),
+    ).toHaveAttribute('href', 'https://whalewisdom.com/filer/state-street-corp');
+    expect(screen.getByText(/These funds have no official filing stored yet/)).toBeInTheDocument();
+  });
+
+  it('omits the watchlist section entirely when every fund has an official filing', () => {
+    render(
+      <InstitutionalOverviewPanel
+        overview={{ ...OVERVIEW, enrichment_only_funds: [] }}
+        holders={HOLDERS}
+        ticker="AAPL"
+      />,
+    );
+
+    expect(
+      screen.queryByRole('table', { name: /watchlist funds awaiting an official filing/i }),
+    ).not.toBeInTheDocument();
+  });
+
   it('renders an explicit empty state rather than empty tables', () => {
     const empty: InstitutionalOverview = {
       ...OVERVIEW,
@@ -176,6 +218,7 @@ describe('InstitutionalOverviewPanel', () => {
       total_positions: 0,
       funds: [],
       stocks: [],
+      enrichment_only_funds: [],
       top_buys: [],
       top_sells: [],
     };

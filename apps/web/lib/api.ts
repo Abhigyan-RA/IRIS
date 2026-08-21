@@ -133,6 +133,17 @@ export const institutionalOverviewSchema = z.object({
         .nullable(),
     }),
   ),
+  enrichment_only_funds: z.array(
+    z.object({
+      filer_name: z.string(),
+      filer_cik: z.string(),
+      holdings_count: z.number().int().nonnegative().nullable(),
+      reported_value_usd: z.string().nullable(),
+      source_name: z.string(),
+      source_url: z.string(),
+      observed_at: z.string(),
+    }),
+  ),
   stocks: z.array(
     z.object({
       stock_ticker: z.string(),
@@ -173,6 +184,7 @@ export const institutionalOverviewSchema = z.object({
   ),
   enrichment_coverage: z.object({
     matched_funds: z.number().int().nonnegative(),
+    enrichment_only_funds: z.number().int().nonnegative(),
     matched_positions: z.number().int().nonnegative(),
     observed_at: z.string().nullable(),
   }),

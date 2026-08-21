@@ -2,6 +2,7 @@ import { Search } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { LivePill } from './LivePill';
 import { NavRail } from './NavRail';
+import { ThemeToggle } from './ThemeToggle';
 import { UtcClock } from './UtcClock';
 
 /**
@@ -32,12 +33,14 @@ export function TopBar({
   now,
 }: TopBarProps): ReactNode {
   return (
-    <header className="flex h-topbar items-center gap-4 border-b border-hairline px-6">
-      <p className="text-sm font-semibold tracking-wide text-ink uppercase">Shadow CPI</p>
-      <LivePill updatedLabel={updatedLabel} />
+    <header className="sticky top-0 z-20 flex h-topbar items-center gap-4 border-b border-hairline bg-canvas/95 px-6 backdrop-blur">
+      <p className="shrink-0 text-sm font-semibold tracking-wide text-ink uppercase">Shadow CPI</p>
+      <div className="hidden min-w-0 lg:block">
+        <LivePill updatedLabel={updatedLabel} />
+      </div>
 
-      <div className="ml-auto flex items-center gap-6">
-        <div className="relative">
+      <div className="ml-auto flex min-w-0 shrink items-center gap-3 sm:gap-4">
+        <div className="relative hidden md:block">
           <Search
             aria-hidden="true"
             className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-ink-faint"
@@ -46,10 +49,15 @@ export function TopBar({
             type="search"
             aria-label="Search"
             placeholder={searchPlaceholder}
-            className="w-72 rounded-card border border-hairline bg-panel py-2 pr-3 pl-9 text-sm text-ink placeholder:text-ink-faint"
+            className="w-44 rounded-card border border-hairline bg-panel py-2 pr-3 pl-9 text-sm text-ink placeholder:text-ink-faint lg:w-64"
           />
         </div>
-        <UtcClock now={now} />
+        {/* The clock is dropped before the theme control on a narrow screen: it is
+            context, while the control is something the reader acts on. */}
+        <div className="hidden shrink-0 md:block">
+          <UtcClock now={now} />
+        </div>
+        <ThemeToggle />
       </div>
     </header>
   );
@@ -88,11 +96,11 @@ export function AppShell({
   currentPath,
 }: AppShellProps): ReactNode {
   return (
-    <div className="flex h-screen bg-canvas">
+    <div className="flex min-h-screen bg-canvas">
       <NavRail currentPath={currentPath} />
       <div className="flex min-w-0 flex-1 flex-col">
         <TopBar updatedLabel={updatedLabel} searchPlaceholder={searchPlaceholder} now={now} />
-        <main className="min-h-0 flex-1 overflow-y-auto p-6">{children}</main>
+        <main className="min-w-0 flex-1 p-4 sm:p-6">{children}</main>
       </div>
     </div>
   );

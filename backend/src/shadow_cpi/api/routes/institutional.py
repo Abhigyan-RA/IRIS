@@ -292,10 +292,34 @@ class InstitutionalMoveEntry(BaseModel):
     source_url: str | None
 
 
+class EnrichmentOnlyFundEntry(BaseModel):
+    """A watchlist fund with public-page data but no official filing stored.
+
+    Kept in its own list rather than mixed into the official funds, so a scraped
+    figure is never mistaken for a filed one. Values here come from the public page.
+    """
+
+    filer_name: str
+    filer_cik: str
+    holdings_count: int | None
+    reported_value_usd: Decimal | None
+    source_name: str
+    source_url: str
+    observed_at: datetime
+
+
 class EnrichmentCoverage(BaseModel):
-    """How much of the official current ledger has matching public-page metadata."""
+    """How much of the official current ledger has matching public-page metadata.
+
+    Attributes:
+        matched_funds: Watchlist funds that also have official positions stored.
+        enrichment_only_funds: Watchlist funds with no official filing stored.
+        matched_positions: Enrichment rows that join to an official position.
+        observed_at: Newest enrichment observation used.
+    """
 
     matched_funds: int
+    enrichment_only_funds: int
     matched_positions: int
     observed_at: datetime | None
 
@@ -308,6 +332,7 @@ class InstitutionalOverviewResponse(BaseModel):
     total_stocks: int
     total_positions: int
     funds: list[FundSummaryEntry]
+    enrichment_only_funds: list[EnrichmentOnlyFundEntry]
     stocks: list[StockSummaryEntry]
     top_buys: list[InstitutionalMoveEntry]
     top_sells: list[InstitutionalMoveEntry]
@@ -318,6 +343,9 @@ class InstitutionalOverviewResponse(BaseModel):
 _COVERAGE_NOTE = (
     "Official SEC 13F coverage includes every latest-quarter position currently stored; "
     "human-readable enrichment is limited to the configured WhaleWisdom watchlist. "
+    "Watchlist funds listed separately have no official filing stored yet, so their "
+    "figures come from the public page rather than a filing, and they are excluded from "
+    "the official totals. "
     "13F reports are quarterly, delayed, long-only disclosures and do not show shorts."
 )
 
@@ -369,7 +397,12 @@ async def read_institutional_overview(
     holdings = await institutional.latest_holdings()
     snapshots = await institutional.latest_fund_snapshots()
     enrichments = await institutional.latest_holding_enrichments()
-    quarter_end = max((row.quarter_end for row in holdings), default=None)
+    # Prefer the newest official quarter. When nothing official is stored yet, fall back
+    # to the newest enriched period so collected watchlist data is still reported rather
+    # than silently dropped.
+    quarter_end = max((row.quarter_end for row in holdings), default=None) or max(
+        (row.report_period for row in snapshots), default=None
+    )
     current = [row for row in holdings if row.quarter_end == quarter_end]
 
     matching_snapshots = {
@@ -385,9 +418,11 @@ async def read_institutional_overview(
 
     fund_rows: dict[str, list[InstitutionalHolding]] = {}
     stock_rows: dict[str, list[InstitutionalHolding]] = {}
+    official_positions: set[tuple[str, str]] = set()
     for row in current:
         fund_rows.setdefault(row.filer_cik, []).append(row)
         stock_rows.setdefault(row.stock_ticker, []).append(row)
+        official_positions.add((row.filer_cik, row.stock_ticker))
 
     funds = [
         FundSummaryEntry(
@@ -405,6 +440,26 @@ async def read_institutional_overview(
         for cik, rows in fund_rows.items()
     ]
     funds.sort(key=lambda row: row.reported_value_usd, reverse=True)
+
+    # A watchlist fund with no official filing stored is reported on its own, so it is
+    # visible without its scraped value entering an official total.
+    enrichment_only = [
+        EnrichmentOnlyFundEntry(
+            filer_name=snapshot.filer_name,
+            filer_cik=cik,
+            holdings_count=snapshot.holdings_count,
+            reported_value_usd=snapshot.reported_value_usd,
+            source_name=snapshot.source_name,
+            source_url=snapshot.source_url,
+            observed_at=snapshot.observed_at,
+        )
+        for cik, snapshot in matching_snapshots.items()
+        if cik not in fund_rows
+    ]
+    enrichment_only.sort(
+        key=lambda row: row.reported_value_usd or Decimal(0),
+        reverse=True,
+    )
 
     stocks: list[StockSummaryEntry] = []
     for ticker, rows in stock_rows.items():
@@ -454,12 +509,14 @@ async def read_institutional_overview(
         total_stocks=len(stock_rows),
         total_positions=len(current),
         funds=funds[:fund_limit],
+        enrichment_only_funds=enrichment_only[:fund_limit],
         stocks=stocks[:stock_limit],
         top_buys=[_move(row) for row in buys[:mover_limit]],
         top_sells=[_move(row) for row in sells[:mover_limit]],
         enrichment_coverage=EnrichmentCoverage(
-            matched_funds=len(matching_snapshots),
-            matched_positions=len(matching_enrichments),
+            matched_funds=sum(1 for cik in matching_snapshots if cik in fund_rows),
+            enrichment_only_funds=len(enrichment_only),
+            matched_positions=sum(1 for key in matching_enrichments if key in official_positions),
             observed_at=max(observed, default=None),
         ),
         coverage_note=_COVERAGE_NOTE,

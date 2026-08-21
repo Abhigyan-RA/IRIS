@@ -12,4 +12,6 @@ __pycache__
 designs
 SHADOW_CPI_PRD_AND_ARCHITECTURE.md
 .kiro
+# Raw collector output, kept exactly as the provider returned it.
+whalewisdom_data
 apps/web/next-env.d.ts

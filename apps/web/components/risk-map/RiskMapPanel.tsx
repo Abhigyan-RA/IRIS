@@ -40,19 +40,70 @@ const SEVERITY_STYLE: Record<ReturnType<typeof moveSeverity>, { dot: string; rin
 };
 
 /**
- * Spread markers that share a region so they do not sit on top of each other.
+ * Shorten a tracked entity's name to something that fits on a marker.
  *
- * Several tracked entities are global, and drawing them at one point would hide all but the
- * last. They are fanned out around the region's coordinate instead.
+ * Stored names are identifiers, not labels: a freight lane is filed as
+ * `FBX01_China_to_North_America_West_Coast`. Printed in full it is wider than the
+ * ocean it crosses, and several of them overlap into an unreadable pile. A lane is
+ * therefore shown by its code, which is how the route is referred to in practice, and
+ * every other name simply reads as words. The full name stays on the link's title and
+ * in the movers list below the map.
  *
- * @param index - Position of this marker among those sharing the region.
- * @returns Offset in map units.
+ * @param entityName - The stored entity name.
+ * @returns The label to draw on the marker.
  */
-function fanOut(index: number): { dx: number; dy: number } {
-  const step = 46;
-  const row = Math.floor(index / 2);
-  const column = index % 2;
-  return { dx: column === 0 ? -step : step, dy: row * 40 - 20 };
+export function markerLabel(entityName: string): string {
+  const code = /^(FBX\d+)_/i.exec(entityName)?.[1];
+  if (code !== undefined) {
+    return code.toUpperCase();
+  }
+  return entityName.replace(/_/g, ' ');
+}
+
+/**
+ * Choose which entries to pin, at most one per region.
+ *
+ * Most tracked entities are global, and every global entity projects to the same
+ * point. Fanning them out only spreads the collision, because the labels are wider
+ * than the gaps. So the map answers "where did something move" with the largest move
+ * per region, and the movers list underneath carries the rest.
+ *
+ * @param entries - Every entry available.
+ * @param limit - How many markers to pin at most.
+ * @returns The entries to pin, largest move first.
+ */
+export function oneMarkerPerRegion(
+  entries: readonly RiskMapEntry[],
+  limit: number,
+): RiskMapEntry[] {
+  const byMove = [...entries].sort(
+    (left, right) => Math.abs(changeOf(right)) - Math.abs(changeOf(left)),
+  );
+  const pinned: RiskMapEntry[] = [];
+  const regionsTaken = new Set<string>();
+  for (const entry of byMove) {
+    if (pinned.length >= limit) {
+      break;
+    }
+    if (regionsTaken.has(entry.region)) {
+      continue;
+    }
+    regionsTaken.add(entry.region);
+    pinned.push(entry);
+  }
+  return pinned;
+}
+
+/**
+ * Read an entry's daily change as a number.
+ *
+ * @param entry - The entry.
+ * @returns The change, or zero when none was reported. A missing change is not a
+ * move, so it sorts last rather than breaking the comparison.
+ */
+function changeOf(entry: RiskMapEntry): number {
+  const parsed = Number.parseFloat(entry.pct_change_1d ?? '0');
+  return Number.isNaN(parsed) ? 0 : parsed;
 }
 
 /**
@@ -76,16 +127,8 @@ export interface RiskMapPanelProps {
  * @param props - The entries to pin and how many.
  * @returns The map panel.
  */
-export function RiskMapPanel({ entries, limit = 6 }: RiskMapPanelProps): ReactNode {
-  const pinned = [...entries]
-    .sort(
-      (left, right) =>
-        Math.abs(Number.parseFloat(right.pct_change_1d ?? '0')) -
-        Math.abs(Number.parseFloat(left.pct_change_1d ?? '0')),
-    )
-    .slice(0, limit);
-
-  const usedPerRegion = new Map<string, number>();
+export function RiskMapPanel({ entries, limit = 4 }: RiskMapPanelProps): ReactNode {
+  const pinned = oneMarkerPerRegion(entries, limit);
 
   return (
     <section aria-labelledby="risk-map-heading" className="space-y-3">
@@ -106,15 +149,12 @@ export function RiskMapPanel({ entries, limit = 6 }: RiskMapPanelProps): ReactNo
               {pinned.map((entry) => {
                 const coordinates = REGION_COORDINATES[entry.region] ?? GLOBAL_COORDINATES;
                 const point = projectToMap(coordinates.longitude, coordinates.latitude);
-                const taken = usedPerRegion.get(entry.region) ?? 0;
-                usedPerRegion.set(entry.region, taken + 1);
-                const offset = fanOut(taken);
                 const severity = moveSeverity(entry);
 
                 // Positions are percentages of the map's own coordinate space, so a marker
                 // stays over its region at any panel size.
-                const left = (((point?.x ?? 0) + offset.dx) / MAP_WIDTH) * 100;
-                const top = (((point?.y ?? 0) + offset.dy) / MAP_HEIGHT) * 100;
+                const left = ((point?.x ?? 0) / MAP_WIDTH) * 100;
+                const top = ((point?.y ?? 0) / MAP_HEIGHT) * 100;
 
                 return (
                   <li
@@ -124,6 +164,7 @@ export function RiskMapPanel({ entries, limit = 6 }: RiskMapPanelProps): ReactNo
                   >
                     <Link
                       href={`/ripple/${encodeURIComponent(entry.entity_name)}`}
+                      title={entry.entity_name}
                       className={`block rounded-card border bg-panel/95 px-2.5 py-1.5 shadow-marker ${
                         severity === 'spike'
                           ? 'border-rise'
@@ -132,12 +173,12 @@ export function RiskMapPanel({ entries, limit = 6 }: RiskMapPanelProps): ReactNo
                             : 'border-hairline-strong'
                       }`}
                     >
-                      <span className="flex items-center gap-2">
+                      <span className="flex items-center gap-2 whitespace-nowrap">
                         <svg aria-hidden="true" className="h-2 w-2 shrink-0" viewBox="0 0 8 8">
                           <circle cx="4" cy="4" r="3" className={SEVERITY_STYLE[severity].dot} />
                         </svg>
                         <span className="text-label text-ink-muted uppercase">
-                          {entry.region}: {entry.entity_name}
+                          {entry.region}: {markerLabel(entry.entity_name)}
                         </span>
                         <Delta value={entry.pct_change_1d} />
                       </span>

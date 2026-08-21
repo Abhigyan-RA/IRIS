@@ -33,7 +33,7 @@ describe('RiskMapPanel', () => {
     render(<RiskMapPanel entries={[entry()]} />);
 
     const marker = screen.getByRole('link');
-    expect(marker).toHaveTextContent('North America: Steel_HRC_US');
+    expect(marker).toHaveTextContent('North America: Steel HRC US');
     expect(marker).toHaveTextContent('840 USD/ton');
     expect(marker).toHaveTextContent('+8.2%');
   });
@@ -55,9 +55,9 @@ describe('RiskMapPanel', () => {
       <RiskMapPanel
         limit={2}
         entries={[
-          entry({ entity_name: 'Small', pct_change_1d: '0.4' }),
-          entry({ entity_name: 'Largest', pct_change_1d: '-12.4' }),
-          entry({ entity_name: 'Middle', pct_change_1d: '8.2' }),
+          entry({ entity_name: 'Small', region: 'Africa', pct_change_1d: '0.4' }),
+          entry({ entity_name: 'Largest', region: 'Europe', pct_change_1d: '-12.4' }),
+          entry({ entity_name: 'Middle', region: 'Asia Pacific', pct_change_1d: '8.2' }),
         ]}
       />,
     );
@@ -101,7 +101,7 @@ describe('RiskMapPanel', () => {
     expect(positions[0]).toBeLessThan(positions[1] ?? 0);
   });
 
-  it('spreads markers that share a region so none is hidden', () => {
+  it('pins only the largest mover of a shared region, so labels never overlap', () => {
     render(
       <RiskMapPanel
         entries={[
@@ -111,8 +111,9 @@ describe('RiskMapPanel', () => {
       />,
     );
 
-    const styles = screen.getAllByRole('listitem').map((item) => item.getAttribute('style'));
-    expect(styles[0]).not.toBe(styles[1]);
+    const markers = screen.getAllByRole('listitem');
+    expect(markers).toHaveLength(1);
+    expect(markers[0]).toHaveTextContent('First');
   });
 
   it('falls back to the global coordinate for an unmapped region', () => {

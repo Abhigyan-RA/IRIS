@@ -2,19 +2,88 @@
 @config '../tailwind.config.ts';
 
 /*
-  Base document styling. The interface is dark by design rather than by preference:
-  it is meant to be read for long stretches on a trading floor or an operations
-  screen, where a bright page is tiring and washes out coloured signals.
+  Design tokens live here as custom properties, and Tailwind's colour names point at
+  them. That is what lets the interface carry two themes without a second set of
+  utility classes: a component asks for `bg-panel`, and the theme decides what panel
+  means.
 
-  Fonts come from the platform stack rather than a web font, so the dashboard needs
-  no network round trip before it can render text, and no font file is fetched from
-  a third party at runtime.
+  Dark is the default. These screens are meant to be read for long stretches on a
+  trading floor or an operations screen, where a bright page is tiring and washes out
+  coloured signals. Light exists because the same screens get opened in a bright room
+  and pasted into reports.
+
+  One rule holds in both themes: a rising cost is bad news, so `rise` is red and
+  `fall` is green. That is the opposite of a stock chart and is deliberate, because
+  the reader is buying these things.
+*/
+:root,
+[data-theme='dark'] {
+  color-scheme: dark;
+
+  --color-canvas: #08090b;
+  --color-rail: #0b0c0e;
+  --color-panel: #111214;
+  --color-panel-raised: #16181c;
+  --color-panel-inset: #1a1d21;
+  --color-hairline: #1f2226;
+  --color-hairline-strong: #2a2e34;
+
+  --color-ink: #e8eaed;
+  --color-ink-muted: #9ba1a8;
+  --color-ink-faint: #6b7280;
+
+  --color-accent: #22d3ee;
+  --color-accent-soft: #0e7490;
+  --color-accent-wash: rgb(34 211 238 / 0.08);
+
+  --color-rise: #f43f5e;
+  --color-fall: #22c55e;
+  --color-warn: #f59e0b;
+  --color-neutral: #9ba1a8;
+}
+
+/*
+  Light theme. The surface order is inverted but the relationships are kept: the
+  canvas sits behind, panels lift off it, and hairlines separate without drawing
+  attention.
+
+  The data colours are darkened rather than reused. Cyan at #22d3ee is legible on
+  near-black and fails against white, so text and icons use #0e7490, which holds a
+  contrast ratio above 4.5 against the light panel. The same reasoning applies to
+  rise, fall, and warn: each is a darker shade of the dark-theme hue, so a reader
+  moving between themes reads the same meaning from the same colour.
+*/
+[data-theme='light'] {
+  color-scheme: light;
+
+  --color-canvas: #f6f7f9;
+  --color-rail: #ffffff;
+  --color-panel: #ffffff;
+  --color-panel-raised: #fbfcfd;
+  --color-panel-inset: #f1f3f5;
+  --color-hairline: #e3e6ea;
+  --color-hairline-strong: #cbd1d8;
+
+  --color-ink: #14171a;
+  --color-ink-muted: #4b5563;
+  --color-ink-faint: #6b7280;
+
+  --color-accent: #0e7490;
+  --color-accent-soft: #22d3ee;
+  --color-accent-wash: rgb(14 116 144 / 0.1);
+
+  --color-rise: #be123c;
+  --color-fall: #15803d;
+  --color-warn: #b45309;
+  --color-neutral: #4b5563;
+}
+
+/*
+  Base document styling. Fonts come from the platform stack rather than a web font,
+  so the dashboard needs no network round trip before it can render text, and no font
+  file is fetched from a third party at runtime.
 */
 @layer base {
-  html {
-    color-scheme: dark;
-  }
-
   body {
     @apply bg-canvas font-sans text-ink antialiased;
   }

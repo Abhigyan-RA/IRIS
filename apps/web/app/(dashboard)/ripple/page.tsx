@@ -47,7 +47,7 @@ export default async function RippleIndexPage(): Promise<ReactNode> {
             <li key={name}>
               <Link
                 href={`/ripple/${encodeURIComponent(name)}`}
-                className="inline-block rounded-card border border-hairline bg-panel px-3 py-2 text-sm text-ink hover:border-accent hover:text-accent"
+                className="inline-block max-w-full rounded-card border border-hairline bg-panel px-3 py-2 text-sm break-words text-ink hover:border-accent hover:text-accent"
               >
                 {name}
               </Link>

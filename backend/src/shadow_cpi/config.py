@@ -29,6 +29,9 @@ Example:
 
 from __future__ import annotations
 
+import os
+from collections.abc import Iterator, Mapping
+from contextlib import contextmanager
 from functools import lru_cache
 from typing import Annotated, Literal, Self
 
@@ -306,6 +309,12 @@ def build_settings(env: dict[str, str] | None = None) -> Settings:
     to test: a test can describe exactly the environment it wants without
     touching ``os.environ`` and leaking that change into other tests.
 
+    An explicit mapping is read on its own. Variables already present in the
+    process environment are ignored for the duration of the call, because the
+    entrypoint loads a developer's ``.env`` into that environment and a real
+    value sitting there would otherwise decide the outcome of a test that
+    described a different environment.
+
     Args:
         env: Environment mapping to read, with upper-case keys. Defaults to the
             real process environment.
@@ -318,7 +327,32 @@ def build_settings(env: dict[str, str] | None = None) -> Settings:
     """
     if env is None:
         return Settings()
-    return Settings(**{key.lower(): value for key, value in env.items()})  # type: ignore[arg-type]
+    with _only_environment({key.upper(): value for key, value in env.items()}):
+        return Settings()
+
+
+@contextmanager
+def _only_environment(values: Mapping[str, str]) -> Iterator[None]:
+    """Expose exactly ``values`` as the recognized settings environment.
+
+    Args:
+        values: Upper-case environment keys to present.
+
+    Yields:
+        Nothing. The previous environment is restored on exit, including on error.
+    """
+    recognized = {name.upper() for name in Settings.model_fields}
+    touched = recognized | set(values)
+    saved = {key: os.environ[key] for key in touched if key in os.environ}
+    try:
+        for key in touched:
+            os.environ.pop(key, None)
+        os.environ.update(values)
+        yield
+    finally:
+        for key in touched:
+            os.environ.pop(key, None)
+        os.environ.update(saved)
 
 
 @lru_cache(maxsize=1)

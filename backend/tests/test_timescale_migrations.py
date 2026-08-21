@@ -47,10 +47,11 @@ class TestLoadMigrations:
     def test_discovers_the_shipped_migrations(self) -> None:
         migrations = load_migrations()
 
-        assert [migration.version for migration in migrations] == [1, 2]
+        assert [migration.version for migration in migrations] == [1, 2, 3]
         assert [migration.name for migration in migrations] == [
             "initial_schema",
             "institutional_enrichment",
+            "holding_enrichment_sector",
         ]
 
     def test_orders_migrations_numerically_not_alphabetically(self, tmp_path: Path) -> None:
@@ -103,7 +104,7 @@ class TestMigrator:
 
         applied = await Migrator(executor).upgrade()
 
-        assert [migration.version for migration in applied] == [1, 2]
+        assert [migration.version for migration in applied] == [1, 2, 3]
         assert "CREATE TABLE IF NOT EXISTS commodity_prices" in _sql_of(executor)
         assert any(
             "INSERT INTO schema_migrations" in sql and params[0] == 1
@@ -112,7 +113,7 @@ class TestMigrator:
 
     @pytest.mark.asyncio
     async def test_skips_migrations_that_are_already_applied(self) -> None:
-        executor = FakeExecutor(applied_versions=[1, 2])
+        executor = FakeExecutor(applied_versions=[1, 2, 3])
 
         applied = await Migrator(executor).upgrade()
 
@@ -126,7 +127,7 @@ class TestMigrator:
 
         await Migrator(executor).upgrade()
 
-        assert executor.transactions == 2
+        assert executor.transactions == 3
 
     @pytest.mark.asyncio
     async def test_version_is_recorded_with_a_parameter_not_string_building(self) -> None:
@@ -148,7 +149,7 @@ class TestMigrator:
 
         pending = await Migrator(executor).pending()
 
-        assert [migration.version for migration in pending] == [1, 2]
+        assert [migration.version for migration in pending] == [1, 2, 3]
         assert "CREATE TABLE IF NOT EXISTS commodity_prices" not in _sql_of(executor)
 
     @pytest.mark.asyncio

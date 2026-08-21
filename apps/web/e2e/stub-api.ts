@@ -29,7 +29,7 @@ const RISK_MAP = {
       entries: [
         {
           entity_name: 'Copper',
-          region: 'Global',
+          region: 'North America',
           sector: 'metals',
           price: '4.52',
           currency: 'USD',
@@ -155,6 +155,7 @@ const INSTITUTIONAL_OVERVIEW = {
     {
       stock_ticker: 'NVDA',
       stock_name: 'NVIDIA Corp',
+      sector: 'INFORMATION TECHNOLOGY',
       holder_count: 1,
       shares_held: 1_200_000,
       market_value_usd: '144000000.00',
@@ -176,8 +177,20 @@ const INSTITUTIONAL_OVERVIEW = {
     },
   ],
   top_sells: [],
+  enrichment_only_funds: [
+    {
+      filer_name: 'State Street Corp',
+      filer_cik: '0000093751',
+      holdings_count: 25,
+      reported_value_usd: '1445691222216.00',
+      source_name: 'whalewisdom.com',
+      source_url: 'https://whalewisdom.com/filer/state-street-corp',
+      observed_at: '2026-08-15T13:00:00Z',
+    },
+  ],
   enrichment_coverage: {
     matched_funds: 1,
+    enrichment_only_funds: 1,
     matched_positions: 1,
     observed_at: '2026-08-15T13:00:00Z',
   },

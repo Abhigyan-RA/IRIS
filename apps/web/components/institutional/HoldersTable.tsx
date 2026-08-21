@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import type { Holders } from '../../lib/api';
+import { professionalFilerLabel } from '../../lib/filers';
 import { Delta } from '../primitives/Delta';
 import { Panel, SectionLabel } from '../primitives/Panel';
 
@@ -113,15 +114,18 @@ export function HoldersTable({ holders }: HoldersTableProps): ReactNode {
                 >
                   <th scope="row" className="p-3 text-left font-normal text-ink">
                     {holder.source_url === null ? (
-                      holder.filer_name
+                      <span title={holder.filer_name}>
+                        {professionalFilerLabel(holder.filer_name)}
+                      </span>
                     ) : (
                       <a
                         href={holder.source_url}
                         target="_blank"
                         rel="noreferrer noopener"
+                        title={holder.filer_name}
                         className="hover:text-accent"
                       >
-                        {holder.filer_name}
+                        {professionalFilerLabel(holder.filer_name)}
                       </a>
                     )}
                   </th>

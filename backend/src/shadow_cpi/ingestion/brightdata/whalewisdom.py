@@ -12,8 +12,6 @@ path described by the product architecture.
 
 from __future__ import annotations
 
-import asyncio
-import json
 import logging
 import re
 from collections.abc import Mapping, Sequence
@@ -42,6 +40,7 @@ SOURCE_NAME = "whalewisdom.com"
 _REQUIRED_PATHS = ()
 _TICKER = re.compile(r"^[A-Z][A-Z.\-]{0,9}$")
 _COUNT = re.compile(r"\bof\s+([\d,]+)\b", re.IGNORECASE)
+_PRIOR = re.compile(r",\s*prior\b", re.IGNORECASE)
 _NUMBER = re.compile(r"[-+]?\(?[\d,.]+\)?")
 _MULTIPLIER = {"k": Decimal(1_000), "m": Decimal(1_000_000), "b": Decimal(1_000_000_000)}
 
@@ -60,27 +59,30 @@ class WhaleWisdomFund:
         return f"https://whalewisdom.com/filer/{self.slug}"
 
 
+# The watchlist is deliberately explicit. Every identifier here is one the official SEC
+# ingestor already tracks, so enrichment can only ever describe a fund whose filings are
+# the authoritative record. Names and identifiers match that official list exactly,
+# because enrichment is joined to official rows by identifier and quarter.
 DEFAULT_WHALEWISDOM_FUNDS: tuple[WhaleWisdomFund, ...] = (
     WhaleWisdomFund("0001350694", "Bridgewater Associates", "bridgewater-associates-inc"),
     WhaleWisdomFund("0000093751", "State Street Corp", "state-street-corp"),
-    # More funds can be added - temporarily limited for testing
-    # WhaleWisdomFund("0001067983", "Berkshire Hathaway", "berkshire-hathaway-inc"),
-    # WhaleWisdomFund("0000895421", "Millennium Management", "millennium-management-l-l-c"),
-    # WhaleWisdomFund("0000100412", "Northern Trust Corp", "northern-trust-corp"),
-    # WhaleWisdomFund("0001050446", "Invesco Ltd", "invesco-plc-london"),
-    # WhaleWisdomFund(
-    #     "0000315066",
-    #     "Fidelity Management & Research",
-    #     "fidelity-management-amp-research-co-ma",
-    # ),
-    # WhaleWisdomFund(
-    #     "0000730718",
-    #     "T. Rowe Price Associates",
-    #     "price-t-rowe-associates-inc-md",
-    # ),
-    # WhaleWisdomFund("0000038777", "Franklin Resources", "franklin-resources-inc"),
-    # WhaleWisdomFund("0001009207", "D. E. Shaw & Co", "d-e-shaw-co-inc"),
-    # WhaleWisdomFund("0001603466", "Point72 Asset Management", "point72-asset-management-lp"),
+    WhaleWisdomFund("0001067983", "Berkshire Hathaway", "berkshire-hathaway-inc"),
+    WhaleWisdomFund("0000895421", "Millennium Management LLC", "millennium-management-l-l-c"),
+    WhaleWisdomFund("0000070858", "Northern Trust Corp", "northern-trust-corp"),
+    WhaleWisdomFund("0000914208", "Invesco Ltd", "invesco-plc-london"),
+    WhaleWisdomFund(
+        "0000315066",
+        "Fidelity Management & Research Company LLC",
+        "fidelity-management-amp-research-co-ma",
+    ),
+    WhaleWisdomFund(
+        "0000019617",
+        "T Rowe Price Associates Inc",
+        "price-t-rowe-associates-inc-md",
+    ),
+    WhaleWisdomFund("0000038777", "Franklin Resources Inc", "franklin-resources-inc"),
+    WhaleWisdomFund("0001418814", "D E Shaw & Co Inc", "d-e-shaw-co-inc"),
+    WhaleWisdomFund("0001061768", "Point72 Asset Management LP", "point72-asset-management-lp"),
 )
 
 
@@ -158,85 +160,24 @@ class WhaleWisdomIngestor:
         observed_at = datetime.now(UTC)
 
         for fund in self._funds:
-            logger.info("Collecting data for %s (this may take 3-5 minutes)...", fund.name)
-            try:
-                cmd = [
-                    "npx",
-                    "@brightdata/cli",
-                    "scraper",
-                    "run",
-                    self._collector_id,
-                    fund.url,
-                    "--json",
-                ]
-                proc = await asyncio.create_subprocess_exec(
-                    *cmd,
-                    stdout=asyncio.subprocess.PIPE,
-                    stderr=asyncio.subprocess.PIPE,
-                )
-
-                try:
-                    stdout_bytes, stderr_bytes = await asyncio.wait_for(
-                        proc.communicate(),
-                        timeout=360,
-                    )
-                except TimeoutError:
-                    proc.kill()
-                    await proc.wait()
-                    logger.error("Timeout (6 min exceeded) collecting data for %s", fund.name)
-                    continue
-
-                if proc.returncode != 0:
-                    stderr = stderr_bytes.decode(errors="replace")
-                    logger.error("CLI error for %s: %s", fund.name, stderr)
-                    continue
-
-                output = stdout_bytes.decode(errors="replace")
-
-                start = output.find("[")
-                end = output.rfind("]")
-                if start == -1 or end == -1 or end < start:
-                    logger.warning("No valid JSON array found in output for %s", fund.name)
-                    continue
-
-                try:
-                    rows = json.loads(output[start : end + 1])
-                except json.JSONDecodeError as exc:
-                    logger.error("JSON decode error for %s: %s", fund.name, exc)
-                    logger.debug("Raw output preview: %s", output[:500])
-                    continue
-
-                if not isinstance(rows, list) or len(rows) == 0:
-                    logger.warning("No data returned for %s", fund.name)
-                    continue
-
-                fund_holdings_count = 0
-                for row in rows:
-                    if not isinstance(row, Mapping):
-                        continue
-                    parsed = _parse_result(row, fund, observed_at)
-                    if parsed is None:
-                        continue
-                    snapshot, fund_enrichments = parsed
-                    snapshots.append(snapshot)
-                    enrichments.extend(fund_enrichments)
-                    fund_holdings_count += len(fund_enrichments)
-
-                logger.info(
-                    "[ok] Successfully collected %d holdings for %s",
-                    fund_holdings_count,
+            outcome = await self._runner.run(self._collector_id, self.source_name, fund.url)
+            if not outcome.rows:
+                logger.warning(
+                    "%s returned no usable rows for %s (%s)",
+                    self.source_name,
                     fund.name,
+                    outcome.reason,
                 )
-
-            except Exception as exc:  # pylint: disable=broad-except
-                logger.exception("Error collecting data for %s: %s", fund.name, exc)
                 continue
 
-        logger.info(
-            "=== Collection Complete === Collected %d fund snapshots with %d total holdings",
-            len(snapshots),
-            len(enrichments),
-        )
+            for row in outcome.rows:
+                parsed = _parse_result(row, fund, observed_at)
+                if parsed is None:
+                    continue
+                snapshot, fund_enrichments = parsed
+                snapshots.append(snapshot)
+                enrichments.extend(fund_enrichments)
+
         return IngestionResult(
             source_name=self.source_name,
             fund_snapshots=tuple(snapshots),
@@ -249,35 +190,39 @@ def _parse_result(
     fund: WhaleWisdomFund,
     observed_at: datetime,
 ) -> tuple[InstitutionalFundSnapshot, list[InstitutionalHoldingEnrichment]] | None:
-    # Use Q2 2026 as default quarter (latest available based on WhaleWisdom data)
-    quarter = date(2026, 6, 30)
+    """Map one collected page to a snapshot and its holding metadata.
 
+    Every value is read from the page. Nothing is inferred: a page that does not state
+    its quarter, or carries no holding rows, is reported as unusable rather than filled
+    in with a guess.
+
+    Args:
+        row: One collected result object.
+        fund: The configured filer the page belongs to.
+        observed_at: When the page was read.
+
+    Returns:
+        The snapshot and its enrichment rows, or None when the page is unusable.
+    """
+    quarter = _date(row.get("quarter"))
     holdings = row.get("holdings")
     raw_holdings = holdings if isinstance(holdings, list) else []
 
-    if not raw_holdings:
+    if quarter is None or not raw_holdings:
         return None
-
-    count = len(raw_holdings)
-
-    total_value = sum(
-        _money(item.get("market_value")) or Decimal(0)
-        for item in raw_holdings
-        if isinstance(item, Mapping)
-    )
 
     try:
         snapshot = InstitutionalFundSnapshot(
             filer_name=fund.name,
             filer_cik=fund.cik,
             report_period=quarter,
-            reported_value_usd=total_value,
-            holdings_count=count,
+            reported_value_usd=_money(row.get("total_holdings")),
+            holdings_count=_count(row.get("holdings_count")),
             source_url=fund.url,
             observed_at=observed_at,
         )
-    except ValidationError as exc:
-        logger.error("ValidationError creating snapshot: %s", exc)
+    except ValidationError:
+        logger.warning("%s page for %s did not validate", SOURCE_NAME, fund.name)
         return None
 
     enrichments: list[InstitutionalHoldingEnrichment] = []
@@ -295,16 +240,15 @@ def _parse_result(
                     quarter_end=quarter,
                     stock_name=_text(item.get("name")),
                     sector=_text(item.get("sector")),
+                    previous_pct_portfolio=_decimal(item.get("previous_percent_of_portfolio")),
                     rank=rank,
-                    reported_pct_change_shares=_parse_change_in_shares(
-                        item.get("change_in_shares")
-                    ),
+                    reported_pct_change_shares=_decimal(item.get("percent_change")),
                     source_url=fund.url,
                     observed_at=observed_at,
                 )
             )
-        except ValidationError as exc:
-            logger.debug("ValidationError creating enrichment for %s: %s", ticker, exc)
+        except ValidationError:
+            logger.debug("skipping unusable holding row for %s", ticker)
             continue
 
     return snapshot, enrichments
@@ -353,21 +297,6 @@ def _decimal(value: object) -> Decimal | None:
     return -number if negative else number
 
 
-def _parse_change_in_shares(value: object) -> Decimal | None:
-    """Parse change_in_shares field which can be like '955,446' or '-826,808'."""
-    if value is None:
-        return None
-
-    text = str(value).replace(",", "").strip()
-    if not text or text.lower() in {"new", "sold all", "n/a", "--"}:
-        return None
-
-    try:
-        return Decimal(text)
-    except (InvalidOperation, ValueError):
-        return None
-
-
 def _money(value: object) -> Decimal | None:
     if isinstance(value, int | float | Decimal) and not isinstance(value, bool):
         try:
@@ -375,14 +304,15 @@ def _money(value: object) -> Decimal | None:
         except InvalidOperation:
             return None
 
-    raw_str = str(value or "").split(",", 1)[0].strip().lower()
-    if not raw_str:
+    # A fund page states the current total and often the previous one beside it, as
+    # "$20.2b, Prior: $13.7b". Only the current figure is stored. Splitting on the
+    # comma itself would break a plain grouped number such as "5,673,738,513".
+    head = _PRIOR.split(str(value or ""), maxsplit=1)[0].strip().lower()
+    if not head:
         return None
 
-    suffix = raw_str[-1:] if raw_str[-1:] in _MULTIPLIER else ""
-    cleaned_str = raw_str[:-1] if suffix else raw_str
-
-    number = _decimal(cleaned_str)
+    suffix = head[-1:] if head[-1:] in _MULTIPLIER else ""
+    number = _decimal(head[:-1] if suffix else head)
     if number is None:
         return None
 

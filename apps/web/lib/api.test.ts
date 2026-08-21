@@ -193,10 +193,12 @@ describe('endpoint helpers', () => {
           total_positions: 1,
           funds: [],
           stocks: [],
+          enrichment_only_funds: [],
           top_buys: [],
           top_sells: [],
           enrichment_coverage: {
             matched_funds: 0,
+            enrichment_only_funds: 0,
             matched_positions: 0,
             observed_at: null,
           },

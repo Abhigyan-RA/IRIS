@@ -23,36 +23,37 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // Surfaces, darkest to lightest. The interface is near-black with panels
-        // lifted a few percent, which is what keeps the coloured data readable.
-        canvas: '#08090b',
-        rail: '#0b0c0e',
-        panel: '#111214',
-        'panel-raised': '#16181c',
-        'panel-inset': '#1a1d21',
-        hairline: '#1f2226',
-        'hairline-strong': '#2a2e34',
+        // Every colour resolves through a custom property so one component class can
+        // serve both themes. The values themselves live in app/globals.css, which is
+        // where the dark and light palettes are defined side by side.
+        canvas: 'var(--color-canvas)',
+        rail: 'var(--color-rail)',
+        panel: 'var(--color-panel)',
+        'panel-raised': 'var(--color-panel-raised)',
+        'panel-inset': 'var(--color-panel-inset)',
+        hairline: 'var(--color-hairline)',
+        'hairline-strong': 'var(--color-hairline-strong)',
 
         // Text, in descending prominence.
-        ink: '#e8eaed',
-        'ink-muted': '#9ba1a8',
-        'ink-faint': '#6b7280',
+        ink: 'var(--color-ink)',
+        'ink-muted': 'var(--color-ink-muted)',
+        'ink-faint': 'var(--color-ink-faint)',
 
         // The one accent colour: panel titles, active navigation, tickers, links,
         // and the primary chart series.
         accent: {
-          DEFAULT: '#22d3ee',
-          soft: '#0e7490',
-          wash: 'rgba(34, 211, 238, 0.08)',
+          DEFAULT: 'var(--color-accent)',
+          soft: 'var(--color-accent-soft)',
+          wash: 'var(--color-accent-wash)',
         },
 
         // Data colours. In this product a rising cost is bad news, so "up" is red
         // and "down" is green. That is the opposite of a stock chart and is
         // deliberate: the reader cares about cost, not price direction.
-        rise: '#f43f5e',
-        fall: '#22c55e',
-        warn: '#f59e0b',
-        neutral: '#9ba1a8',
+        rise: 'var(--color-rise)',
+        fall: 'var(--color-fall)',
+        warn: 'var(--color-warn)',
+        neutral: 'var(--color-neutral)',
       },
       fontFamily: {
         // Numbers, timestamps, tickers, and log lines are monospaced throughout the

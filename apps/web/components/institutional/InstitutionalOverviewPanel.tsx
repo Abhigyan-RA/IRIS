@@ -4,6 +4,7 @@ import { Database, ExternalLink, Search, ShieldCheck } from 'lucide-react';
 import Link from 'next/link';
 import { useState, type ReactNode } from 'react';
 import type { Holders, InstitutionalOverview } from '../../lib/api';
+import { professionalFilerLabel } from '../../lib/filers';
 import { HoldersTable, formatMarketValue, formatShares } from './HoldersTable';
 import { TickerPicker } from './TickerPicker';
 import { Panel, SectionLabel } from '../primitives/Panel';
@@ -61,7 +62,9 @@ function MoveList({
             >
               <div className="min-w-0">
                 <p className="font-mono text-sm text-ink">{row.stock_ticker}</p>
-                <p className="truncate text-xs text-ink-faint">{row.filer_name}</p>
+                <p className="truncate text-xs text-ink-faint" title={row.filer_name}>
+                  {professionalFilerLabel(row.filer_name)}
+                </p>
               </div>
               <div className="text-right">
                 <p
@@ -134,6 +137,15 @@ export function InstitutionalOverviewPanel({
               {overview.enrichment_coverage.matched_funds.toLocaleString('en-US')} funds and{' '}
               {overview.enrichment_coverage.matched_positions.toLocaleString('en-US')} positions in
               this quarter.
+              {overview.enrichment_coverage.enrichment_only_funds > 0 && (
+                <>
+                  {' '}
+                  A further{' '}
+                  {overview.enrichment_coverage.enrichment_only_funds.toLocaleString('en-US')}{' '}
+                  watchlist funds have public-page data but no official filing stored, and are
+                  listed separately below.
+                </>
+              )}
             </p>
           </div>
         </div>
@@ -195,7 +207,9 @@ export function InstitutionalOverviewPanel({
                     {funds.map((fund) => (
                       <tr key={fund.filer_cik} className="border-b border-hairline last:border-0">
                         <th scope="row" className="p-3 text-left font-normal">
-                          <p className="text-ink">{fund.filer_name}</p>
+                          <p className="text-ink" title={fund.filer_name}>
+                            {professionalFilerLabel(fund.filer_name)}
+                          </p>
                           <p className="font-mono text-xs text-ink-faint">CIK {fund.filer_cik}</p>
                         </th>
                         <td className="tabular p-3 text-right text-ink">{fund.position_count}</td>
@@ -314,6 +328,81 @@ export function InstitutionalOverviewPanel({
             <MoveList heading="Top buys" rows={overview.top_buys} />
             <MoveList heading="Top sells" rows={overview.top_sells} />
           </section>
+
+          {overview.enrichment_only_funds.length > 0 && (
+            <section className="space-y-3" aria-labelledby="watchlist-heading">
+              <div className="flex items-baseline justify-between gap-4">
+                <SectionLabel tone="primary" className="!mb-0">
+                  <span id="watchlist-heading">Watchlist funds awaiting an official filing</span>
+                </SectionLabel>
+                <p className="text-xs text-ink-faint">
+                  {overview.enrichment_only_funds.length} of{' '}
+                  {overview.enrichment_coverage.enrichment_only_funds}
+                </p>
+              </div>
+              <p className="max-w-3xl text-xs text-ink-faint">
+                These funds have no official filing stored yet, so the figures below come from the
+                public fund page rather than a filing. They are excluded from the official totals
+                above.
+              </p>
+              <Panel className="overflow-x-auto">
+                <table
+                  className="w-full min-w-[620px] text-sm"
+                  aria-label="Watchlist funds awaiting an official filing"
+                >
+                  <thead>
+                    <tr className="border-b border-hairline text-label text-ink-muted uppercase">
+                      <th scope="col" className="p-3 text-left font-medium">
+                        Fund
+                      </th>
+                      <th scope="col" className="p-3 text-right font-medium">
+                        Holdings on page
+                      </th>
+                      <th scope="col" className="p-3 text-right font-medium">
+                        Reported value
+                      </th>
+                      <th scope="col" className="p-3 text-right font-medium">
+                        Source
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {overview.enrichment_only_funds.map((fund) => (
+                      <tr key={fund.filer_cik} className="border-b border-hairline last:border-0">
+                        <th scope="row" className="p-3 text-left font-normal">
+                          <p className="text-ink" title={fund.filer_name}>
+                            {professionalFilerLabel(fund.filer_name)}
+                          </p>
+                          <p className="font-mono text-xs text-ink-faint">CIK {fund.filer_cik}</p>
+                        </th>
+                        <td className="tabular p-3 text-right text-ink">
+                          {fund.holdings_count ?? '--'}
+                        </td>
+                        <td className="tabular p-3 text-right text-ink">
+                          {formatMarketValue(fund.reported_value_usd)}
+                        </td>
+                        <td className="p-3 text-right">
+                          <a
+                            href={fund.source_url}
+                            target="_blank"
+                            rel="noreferrer noopener"
+                            aria-label={`${fund.filer_name} public page`}
+                            className="inline-flex items-center justify-end gap-1 text-xs text-accent hover:underline"
+                          >
+                            {fund.source_name}
+                            <ExternalLink aria-hidden="true" className="h-3 w-3" />
+                          </a>
+                          <p className="mt-1 text-xs text-ink-faint">
+                            Observed {observedDate(fund.observed_at)}
+                          </p>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </Panel>
+            </section>
+          )}
         </>
       )}
 

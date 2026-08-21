@@ -58,7 +58,7 @@ export function NavRail({ currentPath }: NavRailProps): ReactNode {
   return (
     <nav
       aria-label="Main navigation"
-      className="flex h-full w-rail flex-col items-center gap-2 border-r border-hairline bg-rail py-4"
+      className="sticky top-0 flex h-screen w-rail flex-col items-center gap-2 border-r border-hairline bg-rail py-4"
     >
       <Link
         href="/risk-map"

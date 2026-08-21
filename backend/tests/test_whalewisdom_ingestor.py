@@ -16,6 +16,7 @@ from shadow_cpi.ingestion.brightdata.whalewisdom import (
     WHALEWISDOM_SOURCE_ID,
     WhaleWisdomIngestor,
 )
+from shadow_cpi.ingestion.official.sec_edgar import TRACKED_FILERS
 
 COLLECTOR = "c_whale"
 SETTINGS = build_settings(
@@ -114,10 +115,14 @@ class TestConfiguration:
         assert unconfigured.is_configured is False
 
     def test_default_watchlist_matches_the_official_sec_watchlist(self) -> None:
-        assert {(fund.cik, fund.name) for fund in DEFAULT_WHALEWISDOM_FUNDS} == {
-            ("0001350694", "Bridgewater Associates"),
-            ("0001067983", "Berkshire Hathaway"),
-        }
+        """Only funds the official ingestor already tracks may be enriched."""
+        tracked = {filer.cik: filer.name for filer in TRACKED_FILERS}
+
+        assert DEFAULT_WHALEWISDOM_FUNDS
+        for fund in DEFAULT_WHALEWISDOM_FUNDS:
+            assert fund.cik in tracked
+            assert fund.name == tracked[fund.cik]
+            assert fund.url.startswith("https://whalewisdom.com/filer/")
 
 
 class TestCollection:
@@ -131,7 +136,7 @@ class TestCollection:
             (
                 COLLECTOR,
                 "whalewisdom.com",
-                "https://whalewisdom.com/filer/bridgewater-associates-lp#tabholdings_tab",
+                DEFAULT_WHALEWISDOM_FUNDS[0].url,
             )
         ]
 
@@ -201,6 +206,6 @@ class TestCollection:
         result = await ingestor.ingest()
 
         row = result.holding_enrichments[0]
-        assert row.source_url.endswith("bridgewater-associates-lp#tabholdings_tab")
+        assert row.source_url == DEFAULT_WHALEWISDOM_FUNDS[0].url
         assert row.source_name == "whalewisdom.com"
         assert row.ingestion_method.value == "brightdata_scrape"

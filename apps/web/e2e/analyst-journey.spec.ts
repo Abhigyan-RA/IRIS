@@ -15,12 +15,12 @@ test.describe('the analyst journey', () => {
     await page.goto('/risk-map');
 
     await expect(page.getByRole('region', { name: /Global risk map/ })).toBeVisible();
-    const freightMarker = page.getByRole('link', { name: /FBX_Global/ });
+    const freightMarker = page.getByRole('link', { name: /FBX Global/ });
     await expect(freightMarker).toContainText('+12.4%');
     await expect(page.getByRole('region', { name: /Top movers/ })).toContainText('Copper');
 
     // 2. Follow the largest mover to find out what it affects.
-    await page.getByRole('link', { name: /Global: Copper/ }).click();
+    await page.getByRole('link', { name: /North America: Copper/ }).click();
 
     await expect(page.getByRole('heading', { level: 1, name: 'Copper' })).toBeVisible();
     await expect(page.getByRole('region', { name: /Propagation map/ })).toContainText(

@@ -27,11 +27,33 @@ describe('RootLayout', () => {
     const child = <p>content</p>;
 
     const element = RootLayout({ children: child }) as ReactElement<{
-      children: ReactElement<{ children: unknown }>;
+      children: ReactElement<{ children: unknown }>[];
     }>;
 
-    expect(element.props.children.type).toBe('body');
-    expect(element.props.children.props.children).toBe(child);
+    const body = element.props.children.find((node) => node.type === 'body');
+    expect(body).toBeDefined();
+    expect(body?.props.children).toBe(child);
+  });
+
+  it('applies a theme before the first paint, so no wrong-colour flash is shown', () => {
+    const element = RootLayout({ children: null }) as ReactElement<{
+      'data-theme': string;
+      children: ReactElement<{ children: unknown }>[];
+    }>;
+
+    // A default on the element itself covers the case where the script cannot run.
+    expect(element.props['data-theme']).toBe('dark');
+
+    const head = element.props.children.find((node) => node.type === 'head');
+    const script = (
+      head as ReactElement<{
+        children: ReactElement<{
+          dangerouslySetInnerHTML: { __html: string };
+        }>;
+      }>
+    ).props.children;
+    expect(script.props.dangerouslySetInnerHTML.__html).toContain('shadow-cpi-theme');
+    expect(script.props.dangerouslySetInnerHTML.__html).toContain('light');
   });
 
   it('exposes page metadata used for the browser title and description', () => {

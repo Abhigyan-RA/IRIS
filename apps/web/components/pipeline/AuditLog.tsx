@@ -89,7 +89,7 @@ export function AuditLog({ events }: AuditLogProps): ReactNode {
                     {formatEventTime(event.occurred_at)}
                   </time>
 
-                  <span className="tabular w-40 shrink-0 truncate text-xs text-ink-muted">
+                  <span className="tabular w-24 shrink-0 truncate text-xs text-ink-muted sm:w-40">
                     {event.scraper_id}
                   </span>
 
@@ -100,7 +100,7 @@ export function AuditLog({ events }: AuditLogProps): ReactNode {
                     {presentation.label}
                   </span>
 
-                  <span className="min-w-48 flex-1 text-sm text-ink">
+                  <span className="min-w-0 flex-1 text-sm text-ink sm:min-w-48">
                     {event.message ?? event.event_type.replace(/_/g, ' ')}
                   </span>
                 </li>

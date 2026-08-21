@@ -59,7 +59,7 @@ export interface MoverCardProps {
 export function MoverCard({ entry }: MoverCardProps): ReactNode {
   const severity = moveSeverity(entry);
   return (
-    <Panel className={`min-w-44 p-4 ${SEVERITY_BORDER[severity]}`}>
+    <Panel className={`min-w-0 p-4 ${SEVERITY_BORDER[severity]}`}>
       <div className="flex items-center justify-between gap-2">
         <p className="text-label text-ink-muted uppercase">{entry.sector}</p>
         <StatusDot
@@ -121,7 +121,7 @@ export function TopMovers({ entries, limit = 6 }: TopMoversProps): ReactNode {
           </p>
         </Panel>
       ) : (
-        <ul className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+        <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6">
           {ranked.map((entry) => (
             <li key={`${entry.sector}-${entry.entity_name}`}>
               <MoverCard entry={entry} />

@@ -69,8 +69,8 @@ export function LanePrices({ entries }: LanePricesProps): ReactNode {
         <span id="lanes-heading">Container lanes, most expensive first</span>
       </SectionLabel>
 
-      <Panel className="overflow-hidden">
-        <table className="w-full border-collapse text-sm">
+      <Panel className="overflow-x-auto">
+        <table className="w-full min-w-[420px] border-collapse text-sm">
           <caption className="sr-only">
             Container freight prices per lane, ranked from most to least expensive
           </caption>
