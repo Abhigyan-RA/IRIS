@@ -125,7 +125,7 @@ _FUND_SNAPSHOT_COLUMNS = (
 )
 
 _HOLDING_ENRICHMENT_COLUMNS = (
-    "filer_cik, stock_ticker, quarter_end, stock_name, previous_pct_portfolio, rank, "
+    "filer_cik, stock_ticker, quarter_end, stock_name, sector, previous_pct_portfolio, rank, "
     "reported_pct_change_shares, quarter_first_owned, estimated_avg_price, source_name, "
     "source_url, ingestion_method, observed_at"
 )
@@ -150,9 +150,10 @@ ON CONFLICT (filer_cik, report_period) DO UPDATE SET
 
 _UPSERT_HOLDING_ENRICHMENT = f"""
 INSERT INTO institutional_holding_enrichments ({_HOLDING_ENRICHMENT_COLUMNS})
-VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
 ON CONFLICT (filer_cik, stock_ticker, quarter_end) DO UPDATE SET
     stock_name = EXCLUDED.stock_name,
+    sector = EXCLUDED.sector,
     previous_pct_portfolio = EXCLUDED.previous_pct_portfolio,
     rank = EXCLUDED.rank,
     reported_pct_change_shares = EXCLUDED.reported_pct_change_shares,
@@ -461,6 +462,7 @@ class TimescaleHoldingsRepository:
                 row.stock_ticker,
                 row.quarter_end,
                 row.stock_name,
+                row.sector,
                 row.previous_pct_portfolio,
                 row.rank,
                 row.reported_pct_change_shares,

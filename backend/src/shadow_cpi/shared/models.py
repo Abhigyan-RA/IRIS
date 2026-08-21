@@ -242,6 +242,7 @@ class InstitutionalHoldingEnrichment(_StrictModel):
     stock_ticker: TickerSymbol
     quarter_end: date
     stock_name: str | None = Field(default=None, max_length=255)
+    sector: str | None = Field(default=None, max_length=100)
     previous_pct_portfolio: PortfolioPercent | None = None
     rank: int | None = Field(default=None, ge=1)
     reported_pct_change_shares: InstitutionalMetric | None = None

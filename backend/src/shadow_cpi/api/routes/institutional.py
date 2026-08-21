@@ -270,6 +270,7 @@ class StockSummaryEntry(BaseModel):
 
     stock_ticker: str
     stock_name: str | None
+    sector: str | None
     holder_count: int
     shares_held: int
     market_value_usd: Decimal
@@ -417,6 +418,10 @@ async def read_institutional_overview(
                 stock_ticker=ticker,
                 stock_name=next(
                     (item.stock_name for item in matched if item.stock_name is not None),
+                    None,
+                ),
+                sector=next(
+                    (item.sector for item in matched if item.sector is not None),
                     None,
                 ),
                 holder_count=len(rows),

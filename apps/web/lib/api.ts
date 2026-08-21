@@ -137,6 +137,7 @@ export const institutionalOverviewSchema = z.object({
     z.object({
       stock_ticker: z.string(),
       stock_name: z.string().nullable(),
+      sector: z.string().nullable(),
       holder_count: z.number().int().nonnegative(),
       shares_held: z.number().int().nonnegative(),
       market_value_usd: z.string(),

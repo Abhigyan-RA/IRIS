@@ -293,7 +293,8 @@ def _parse_result(
                     filer_cik=fund.cik,
                     stock_ticker=ticker,
                     quarter_end=quarter,
-                    stock_name=_text(item.get("name")) or _text(item.get("sector")),
+                    stock_name=_text(item.get("name")),
+                    sector=_text(item.get("sector")),
                     rank=rank,
                     reported_pct_change_shares=_parse_change_in_shares(
                         item.get("change_in_shares")

@@ -94,7 +94,9 @@ export function InstitutionalOverviewPanel({
     `${fund.filer_name} ${fund.filer_cik}`.toLowerCase().includes(query),
   );
   const stocks = overview.stocks.filter((stock) =>
-    `${stock.stock_ticker} ${stock.stock_name ?? ''}`.toLowerCase().includes(query),
+    `${stock.stock_ticker} ${stock.stock_name ?? ''} ${stock.sector ?? ''}`
+      .toLowerCase()
+      .includes(query),
   );
 
   return (
@@ -278,9 +280,13 @@ export function InstitutionalOverviewPanel({
                           >
                             {stock.stock_ticker}
                           </Link>
-                          <p className="text-xs text-ink-muted">
-                            {stock.stock_name ?? 'Name unavailable'}
-                          </p>
+                          {stock.stock_name !== null ? (
+                            <p className="text-xs text-ink-muted">{stock.stock_name}</p>
+                          ) : stock.sector !== null ? (
+                            <p className="bg-surface mt-0.5 inline-block rounded px-1.5 py-0.5 font-mono text-xs text-ink-faint uppercase">
+                              {stock.sector}
+                            </p>
+                          ) : null}
                         </th>
                         <td className="tabular p-3 text-right text-ink">{stock.holder_count}</td>
                         <td className="tabular p-3 text-right text-ink">

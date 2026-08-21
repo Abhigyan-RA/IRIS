@@ -81,7 +81,8 @@ async def import_data(json_file: str, cik: str, fund_name: str, slug: str):
                 filer_cik=cik,
                 stock_ticker=ticker,
                 quarter_end=quarter,
-                stock_name=item.get('sector'),
+                stock_name=None,
+                sector=item.get('sector'),
                 rank=rank,
                 reported_pct_change_shares=change,
                 source_url=url,
@@ -116,16 +117,17 @@ async def import_data(json_file: str, cik: str, fund_name: str, slug: str):
         for enr in enrichments:
             await executor.execute("""
                 INSERT INTO institutional_holding_enrichments
-                (filer_cik, stock_ticker, quarter_end, stock_name, rank,
+                (filer_cik, stock_ticker, quarter_end, stock_name, sector, rank,
                  reported_pct_change_shares, source_name, source_url, ingestion_method, observed_at)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 ON CONFLICT (filer_cik, stock_ticker, quarter_end) DO UPDATE
                 SET stock_name = EXCLUDED.stock_name,
+                    sector = EXCLUDED.sector,
                     rank = EXCLUDED.rank,
                     reported_pct_change_shares = EXCLUDED.reported_pct_change_shares,
                     observed_at = EXCLUDED.observed_at
             """, [enr.filer_cik, enr.stock_ticker, enr.quarter_end, enr.stock_name,
-                enr.rank, enr.reported_pct_change_shares,
+                enr.sector, enr.rank, enr.reported_pct_change_shares,
                 'whalewisdom', enr.source_url, 'brightdata_scrape', enr.observed_at])
     
     print(f"[ok] Imported {fund_name}: {len(enrichments)} holdings, ${total_value:,.0f} total value")
