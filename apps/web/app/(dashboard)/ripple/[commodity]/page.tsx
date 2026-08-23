@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { RippleChain, RippleLinks } from '../../../../components/ripple/RippleChain';
 import { PropagationReport, SelectedNode } from '../../../../components/ripple/SelectedNode';
+import { ExposedFunds } from '../../../../components/ripple/ExposedFunds';
 import { FailureNotice } from '../../../../components/feedback/FailureNotice';
 import { getRipple, getTrend, type Ripple, type Trend } from '../../../../lib/api';
 
@@ -10,40 +11,36 @@ import { getRipple, getTrend, type Ripple, type Trend } from '../../../../lib/ap
 interface RipplePageProps {
   /** Route parameters, carrying the commodity to examine. */
   params: Promise<{ commodity: string }>;
+  /** Search parameters, carrying optional depth override. */
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }
 
 /**
  * The Ripple Effect screen: what a price move touches downstream.
- *
- * This is the answer to "why should I care". A price on its own is a number; the
- * chain from copper to stator coils to electric-vehicle manufacturing is what makes
- * it a consequence.
- *
- * Price history and the graph traversal are fetched together. History is optional:
- * an entity can be in the graph before any source reports a price for it, and the
- * screen is still useful in that state, so a missing price is not treated as a
- * failure.
- *
- * @param props - Route parameters.
- * @returns The ripple screen.
  */
-export default async function RipplePage({ params }: RipplePageProps): Promise<ReactNode> {
+export default async function RipplePage({
+  params,
+  searchParams,
+}: RipplePageProps): Promise<ReactNode> {
   const { commodity: raw } = await params;
   const commodity = decodeURIComponent(raw);
+
+  // Allow depth override via ?depth=3 for deeper traversal
+  const sp = await searchParams;
+  const depthParam = Array.isArray(sp.depth) ? sp.depth[0] : sp.depth;
+  const depth = depthParam ? Math.min(5, Math.max(1, parseInt(depthParam, 10))) : 3;
 
   let ripple: Ripple | null = null;
   let trend: Trend | null;
   let failure: unknown = null;
 
   try {
-    ripple = await getRipple(commodity);
+    ripple = await getRipple(commodity, depth);
   } catch (error) {
     failure = error;
   }
 
   try {
-    // A commodity can exist in the graph before any price is recorded for it, so a
-    // missing price is an expected state rather than a failure worth reporting.
     trend = await getTrend(commodity);
   } catch {
     trend = null;
@@ -63,6 +60,7 @@ export default async function RipplePage({ params }: RipplePageProps): Promise<R
         <PropagationReport ripple={ripple} />
         <RippleChain ripple={ripple} />
         <RippleLinks ripple={ripple} />
+        <ExposedFunds ripple={ripple} />
       </div>
     </div>
   );

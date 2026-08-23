@@ -212,6 +212,101 @@ SCRAPED_SOURCES: dict[str, ScrapedSource] = {
             "crude oil and refined product listed."
         ),
     ),
+    "gold_scraper": ScrapedSource(
+        collector_id="gold_scraper",
+        source_name="investing.com",
+        url="https://www.investing.com/commodities/gold",
+        entity_name="Gold",
+        sector=Sector.METALS,
+        unit="troy_oz",
+        price_paths=("price.value", "price", "current_price", "last"),
+        change_paths=("price_change_percent", "change_pct", "daily_change"),
+        extraction_prompt=(
+            "Extract the current gold price per troy ounce, the daily percent change, "
+            "and today's high and low."
+        ),
+    ),
+    "aluminum_scraper": ScrapedSource(
+        collector_id="aluminum_scraper",
+        source_name="investing.com",
+        url="https://www.investing.com/commodities/aluminum",
+        entity_name="Aluminum",
+        sector=Sector.METALS,
+        unit="metric_ton",
+        price_paths=("price.value", "price", "current_price", "last"),
+        change_paths=("price_change_percent", "change_pct", "daily_change"),
+        extraction_prompt=(
+            "Extract the current aluminum price per metric ton and its daily percent change."
+        ),
+    ),
+    "natural_gas_scraper": ScrapedSource(
+        collector_id="natural_gas_scraper",
+        source_name="investing.com",
+        url="https://www.investing.com/commodities/natural-gas",
+        entity_name="Natural_Gas",
+        sector=Sector.ENERGY,
+        unit="mmbtu",
+        price_paths=("price.value", "price", "current_price", "last"),
+        change_paths=("price_change_percent", "change_pct", "daily_change"),
+        extraction_prompt=(
+            "Extract the current Henry Hub natural gas price per MMBtu "
+            "and its daily percent change."
+        ),
+    ),
+    "wheat_scraper": ScrapedSource(
+        collector_id="wheat_scraper",
+        source_name="investing.com",
+        url="https://www.investing.com/commodities/us-wheat",
+        entity_name="Wheat",
+        sector=Sector.AGRICULTURE,
+        unit="bushel",
+        price_paths=("price.value", "price", "current_price", "last"),
+        change_paths=("price_change_percent", "change_pct", "daily_change"),
+        extraction_prompt=(
+            "Extract the current CBOT wheat futures price per bushel and its daily percent change."
+        ),
+    ),
+    "corn_scraper": ScrapedSource(
+        collector_id="corn_scraper",
+        source_name="investing.com",
+        url="https://www.investing.com/commodities/us-corn",
+        entity_name="Corn",
+        sector=Sector.AGRICULTURE,
+        unit="bushel",
+        price_paths=("price.value", "price", "current_price", "last"),
+        change_paths=("price_change_percent", "change_pct", "daily_change"),
+        extraction_prompt=(
+            "Extract the current CBOT corn futures price per bushel and its daily percent change."
+        ),
+    ),
+    "soybeans_scraper": ScrapedSource(
+        collector_id="soybeans_scraper",
+        source_name="investing.com",
+        url="https://www.investing.com/commodities/soybeans",
+        entity_name="Soybeans",
+        sector=Sector.AGRICULTURE,
+        unit="bushel",
+        price_paths=("price.value", "price", "current_price", "last"),
+        change_paths=("price_change_percent", "change_pct", "daily_change"),
+        extraction_prompt=(
+            "Extract the current CBOT soybean futures price per bushel "
+            "and its daily percent change."
+        ),
+    ),
+    "steel_scraper": ScrapedSource(
+        collector_id="steel_scraper",
+        source_name="investing.com",
+        url="https://www.investing.com/commodities/us-hrc-steel",
+        entity_name="Steel_HRC_US",
+        sector=Sector.METALS,
+        unit="short_ton",
+        price_paths=("price.value", "price", "current_price", "last"),
+        change_paths=("price_change_percent", "change_pct", "daily_change"),
+        extraction_prompt=(
+            "Extract the current US Hot-Rolled Coil steel futures price per short ton "
+            "and its daily percent change."
+        ),
+    ),
 }
 
 

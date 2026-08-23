@@ -33,6 +33,23 @@ export const REGION_COORDINATES: Record<string, { longitude: number; latitude: n
   Global: GLOBAL_COORDINATES,
 };
 
+/**
+ * Override coordinates for specific entities that have a more precise home than their
+ * region's centroid. Metals trade globally but the benchmarks originate in specific
+ * financial centres; freight indices are averages of global lanes.
+ */
+export const ENTITY_COORDINATES: Record<string, { longitude: number; latitude: number }> = {
+  // LME metals — London
+  Copper: { longitude: -0.1, latitude: 51.5 },
+  Gold: { longitude: -0.1, latitude: 51.5 },
+  Aluminum: { longitude: -0.1, latitude: 51.5 },
+  // Global freight indices — mid-Atlantic
+  FBX_Global: { longitude: -35, latitude: 25 },
+  Baltic_Dry_Index: { longitude: -35, latitude: 38 },
+  // Henry Hub natural gas — Louisiana
+  Natural_Gas: { longitude: -91, latitude: 30 },
+};
+
 const SEVERITY_STYLE: Record<ReturnType<typeof moveSeverity>, { dot: string; ring: string }> = {
   spike: { dot: 'fill-rise', ring: 'stroke-rise' },
   easing: { dot: 'fill-fall', ring: 'stroke-fall' },
@@ -61,15 +78,15 @@ export function markerLabel(entityName: string): string {
 }
 
 /**
- * Choose which entries to pin, at most one per region.
+ * Choose which entries to pin — at most one per region+sector combination.
  *
- * Most tracked entities are global, and every global entity projects to the same
- * point. Fanning them out only spreads the collision, because the labels are wider
- * than the gaps. So the map answers "where did something move" with the largest move
- * per region, and the movers list underneath carries the rest.
+ * A region can legitimately have both an energy move and a freight move at the same
+ * time. Showing one per region+sector keeps the map informative without overplotting:
+ * North America can show WTI (energy) and an FBX lane (freight) as separate pins.
+ * Within each region+sector pair, the largest mover is chosen.
  *
  * @param entries - Every entry available.
- * @param limit - How many markers to pin at most.
+ * @param limit - Maximum total markers (prevents a fully-loaded map becoming unreadable).
  * @returns The entries to pin, largest move first.
  */
 export function oneMarkerPerRegion(
@@ -80,15 +97,17 @@ export function oneMarkerPerRegion(
     (left, right) => Math.abs(changeOf(right)) - Math.abs(changeOf(left)),
   );
   const pinned: RiskMapEntry[] = [];
-  const regionsTaken = new Set<string>();
+  const slotsTaken = new Set<string>();
   for (const entry of byMove) {
     if (pinned.length >= limit) {
       break;
     }
-    if (regionsTaken.has(entry.region)) {
+    // Key on region+sector so each region can show one pin per asset class.
+    const slot = `${entry.region}::${entry.sector}`;
+    if (slotsTaken.has(slot)) {
       continue;
     }
-    regionsTaken.add(entry.region);
+    slotsTaken.add(slot);
     pinned.push(entry);
   }
   return pinned;
@@ -127,8 +146,23 @@ export interface RiskMapPanelProps {
  * @param props - The entries to pin and how many.
  * @returns The map panel.
  */
-export function RiskMapPanel({ entries, limit = 4 }: RiskMapPanelProps): ReactNode {
+export function RiskMapPanel({ entries, limit = 12 }: RiskMapPanelProps): ReactNode {
   const pinned = oneMarkerPerRegion(entries, limit);
+
+  // When two pins land at the same projected point (e.g. two Global entries),
+  // stagger them vertically so they don't stack invisibly.
+  const seen = new Map<string, number>();
+  const withOffset = pinned.map((entry) => {
+    const coordinates =
+      ENTITY_COORDINATES[entry.entity_name] ??
+      REGION_COORDINATES[entry.region] ??
+      GLOBAL_COORDINATES;
+    const point = projectToMap(coordinates.longitude, coordinates.latitude);
+    const key = `${String(point?.x ?? 0)},${String(point?.y ?? 0)}`;
+    const count = seen.get(key) ?? 0;
+    seen.set(key, count + 1);
+    return { entry, point, stackIndex: count };
+  });
 
   return (
     <section aria-labelledby="risk-map-heading" className="space-y-3">
@@ -140,21 +174,17 @@ export function RiskMapPanel({ entries, limit = 4 }: RiskMapPanelProps): ReactNo
         <div className="relative aspect-[960/500] w-full">
           <WorldMap />
 
-          {pinned.length === 0 ? (
+          {withOffset.length === 0 ? (
             <p className="absolute inset-0 flex items-center justify-center text-sm text-ink-faint">
               No prices have been collected yet. Markers appear as sources report.
             </p>
           ) : (
             <ul className="absolute inset-0">
-              {pinned.map((entry) => {
-                const coordinates = REGION_COORDINATES[entry.region] ?? GLOBAL_COORDINATES;
-                const point = projectToMap(coordinates.longitude, coordinates.latitude);
+              {withOffset.map(({ entry, point, stackIndex }) => {
                 const severity = moveSeverity(entry);
-
-                // Positions are percentages of the map's own coordinate space, so a marker
-                // stays over its region at any panel size.
                 const left = ((point?.x ?? 0) / MAP_WIDTH) * 100;
-                const top = ((point?.y ?? 0) / MAP_HEIGHT) * 100;
+                // Stagger pins sharing the same coordinate (e.g. two Global entries)
+                const top = ((point?.y ?? 0) / MAP_HEIGHT) * 100 + stackIndex * 6;
 
                 return (
                   <li

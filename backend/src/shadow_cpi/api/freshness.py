@@ -24,13 +24,32 @@ ENTITY_REGIONS: dict[str, str] = {
     "Steel_HRC_US": "North America",
     "WTI_Crude": "North America",
     "WTI_Crude_Delayed": "North America",
-    "Brent_Crude": "Europe",
+    "Natural_Gas": "North America",
     "Wheat": "North America",
     "Corn": "North America",
     "Soybeans": "North America",
-    "FBX_Global": DEFAULT_REGION,
-    "Baltic_Dry_Index": DEFAULT_REGION,
-    "Copper": DEFAULT_REGION,
+    "Brent_Crude": "Europe",
+    "Gold": "Global",
+    "Aluminum": "Global",
+    "Copper": "Global",
+    "FBX_Global": "Global",
+    "Baltic_Dry_Index": "Global",
+    # China outbound lanes
+    "FBX01_China_to_North_America_West_Coast": "Asia Pacific",
+    "FBX03_China_to_North_America_East_Coast": "Asia Pacific",
+    "FBX11_China_to_Northern_Europe": "Asia Pacific",
+    "FBX13_China_to_Mediterranean": "Asia Pacific",
+    # Return lanes to China
+    "FBX02_North_America_West_Coast_to_China": "North America",
+    "FBX04_North_America_East_Coast_to_China": "North America",
+    "FBX12_Northern_Europe_to_China": "Europe",
+    "FBX14_Mediterranean_to_China": "Europe",
+    # Trans-Atlantic lanes
+    "FBX21_North_America_East_Coast_to_Northern_Europe": "North America",
+    "FBX22_Northern_Europe_to_North_American_East_Coast": "Europe",
+    # South America lanes
+    "FBX24_Europe_to_South_America_East_Coast": "South America",
+    "FBX26_Europe_to_South_America_West_Coast": "South America",
 }
 
 # How old a price may be before it is labelled stale, by category. Freight and
