@@ -4,9 +4,7 @@ The FastAPI service behind Shadow CPI. It collects data from public sources,
 normalizes it into one shape, stores it, and serves it through a REST API and an
 MCP server.
 
-Setup instructions live in the [repository README](../README.md). Product scope
-and data-source details live in
-[SHADOW_CPI_PRD_AND_ARCHITECTURE.md](../SHADOW_CPI_PRD_AND_ARCHITECTURE.md).
+Setup instructions live in the [repository README](../README.md).
 
 ## Where things live
 

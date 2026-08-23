@@ -10,7 +10,6 @@ package-lock.json
 .venv
 __pycache__
 designs
-SHADOW_CPI_PRD_AND_ARCHITECTURE.md
 .kiro
 # Raw collector output, kept exactly as the provider returned it.
 whalewisdom_data

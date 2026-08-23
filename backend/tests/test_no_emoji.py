@@ -5,7 +5,6 @@ from __future__ import annotations
 from pathlib import Path
 
 from shadow_cpi.tooling.no_emoji import (
-    DEFAULT_EXCLUDED_FILES,
     EmojiHit,
     find_emoji,
     iter_source_files,
@@ -90,17 +89,6 @@ def test_iter_source_files_skips_dependency_and_build_directories(tmp_path: Path
     assert names == ["keep.py"]
 
 
-def test_iter_source_files_skips_the_requirements_document(tmp_path: Path) -> None:
-    """The requirements document is an external input and is left untouched."""
-    (tmp_path / "SHADOW_CPI_PRD_AND_ARCHITECTURE.md").write_text("\u26a0\ufe0f", encoding="utf-8")
-    (tmp_path / "notes.md").write_text("clean\n", encoding="utf-8")
-
-    names = [path.name for path in iter_source_files(tmp_path)]
-
-    assert names == ["notes.md"]
-    assert "SHADOW_CPI_PRD_AND_ARCHITECTURE.md" in DEFAULT_EXCLUDED_FILES
-
-
 def test_main_returns_zero_for_clean_files(tmp_path: Path, capsys) -> None:
     clean = tmp_path / "clean.py"
     clean.write_text("value = 1\n", encoding="utf-8")
@@ -123,13 +111,11 @@ def test_main_reports_offenders_with_code_points(tmp_path: Path, capsys) -> None
     assert "Emoji are not allowed" in output
 
 
-def test_main_ignores_binary_and_excluded_paths(tmp_path: Path) -> None:
+def test_main_ignores_binary_paths(tmp_path: Path) -> None:
     image = tmp_path / "logo.png"
     image.write_bytes(b"\x89PNG")
-    requirements_doc = tmp_path / "SHADOW_CPI_PRD_AND_ARCHITECTURE.md"
-    requirements_doc.write_text("\u26a0\ufe0f", encoding="utf-8")
 
-    assert main([str(image), str(requirements_doc)]) == 0
+    assert main([str(image)]) == 0
 
 
 def test_repository_sources_contain_no_emoji() -> None:

@@ -89,7 +89,7 @@ _EXCLUDED_DIRECTORIES: frozenset[str] = frozenset(
     }
 )
 
-DEFAULT_EXCLUDED_FILES: frozenset[str] = frozenset({"SHADOW_CPI_PRD_AND_ARCHITECTURE.md"})
+DEFAULT_EXCLUDED_FILES: frozenset[str] = frozenset()
 
 
 @dataclass(frozen=True, slots=True)
