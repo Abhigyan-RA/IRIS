@@ -199,7 +199,7 @@ export function InstitutionalOverviewPanel({
                       <th className="p-3 text-left font-medium">Fund</th>
                       <th className="p-3 text-right font-medium">Positions</th>
                       <th className="p-3 text-right font-medium">Official value</th>
-                      <th className="p-3 text-right font-medium">Top-ten concentration</th>
+                      <th className="p-3 text-right font-medium">Net share change</th>
                       <th className="p-3 text-right font-medium">Provenance</th>
                     </tr>
                   </thead>
@@ -207,20 +207,33 @@ export function InstitutionalOverviewPanel({
                     {funds.map((fund) => (
                       <tr key={fund.filer_cik} className="border-b border-hairline last:border-0">
                         <th scope="row" className="p-3 text-left font-normal">
-                          <p className="text-ink" title={fund.filer_name}>
+                          <Link
+                            href={`/institutional/filer/${encodeURIComponent(fund.filer_cik)}`}
+                            className="text-accent hover:underline"
+                            title={fund.filer_name}
+                          >
                             {professionalFilerLabel(fund.filer_name)}
-                          </p>
+                          </Link>
                           <p className="font-mono text-xs text-ink-faint">CIK {fund.filer_cik}</p>
                         </th>
                         <td className="tabular p-3 text-right text-ink">{fund.position_count}</td>
                         <td className="tabular p-3 text-right text-ink">
                           {formatMarketValue(fund.reported_value_usd)}
                         </td>
-                        <td className="tabular p-3 text-right text-ink-muted">
-                          {fund.enrichment?.top_10_concentration_pct === null ||
-                          fund.enrichment === null
-                            ? '--'
-                            : `${fund.enrichment.top_10_concentration_pct}%`}
+                        <td className="tabular p-3 text-right">
+                          {fund.enrichment?.net_share_change === null ||
+                          fund.enrichment?.net_share_change === undefined ? (
+                            <span className="text-ink-muted">--</span>
+                          ) : (
+                            <span
+                              className={
+                                fund.enrichment.net_share_change >= 0 ? 'text-rise' : 'text-fall'
+                              }
+                            >
+                              {fund.enrichment.net_share_change >= 0 ? '+' : ''}
+                              {formatShares(fund.enrichment.net_share_change)}
+                            </span>
+                          )}
                         </td>
                         <td className="p-3 text-right">
                           {fund.source_url === null ? (

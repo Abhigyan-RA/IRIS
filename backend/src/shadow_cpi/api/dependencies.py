@@ -11,7 +11,8 @@ deployment still serves everything it can.
 
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+from collections.abc import AsyncIterator, Mapping, Sequence
+from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from hmac import compare_digest
 from typing import TYPE_CHECKING, Protocol
@@ -21,6 +22,8 @@ from fastapi import Header, HTTPException, Request, status
 from shadow_cpi.config import Settings
 
 if TYPE_CHECKING:
+    from neo4j import AsyncDriver
+
     from shadow_cpi.ai.copilot import CopilotAnswer
     from shadow_cpi.db.neo4j.repository import RippleLink
     from shadow_cpi.db.protocols import (
@@ -86,7 +89,8 @@ class ApiDependencies:
         holdings: Reads quarterly fund disclosures.
         institutional: Reads the latest official ledger plus separate enrichment.
         health_events: Reads the collector audit trail.
-        graph: Reads supply-chain relationships.
+        neo4j_driver: Neo4j driver. A fresh session is opened per request so
+            concurrent graph queries never share a socket.
         healer: Runs a collector on demand and repairs it if needed.
         copilot: Answers free-form questions from stored data.
         explainer: Writes the plain-language explanation for a ripple result.
@@ -96,7 +100,7 @@ class ApiDependencies:
     holdings: HoldingsReader | None = None
     institutional: InstitutionalIntelligenceReader | None = None
     health_events: HealthEventReader | None = None
-    graph: SupplyChainReader | None = None
+    neo4j_driver: AsyncDriver | None = None
     healer: CollectorHealer | None = None
     copilot: Copilot | None = None
     explainer: RippleExplainer | None = None
@@ -205,25 +209,49 @@ def require_health_events(request: Request) -> HealthEventReader:
     return events
 
 
-def require_graph(request: Request) -> SupplyChainReader:
-    """Return the graph reader, or report that the graph is unavailable.
+@asynccontextmanager
+async def _graph_session(request: Request) -> AsyncIterator[SupplyChainReader]:
+    """Open a fresh Neo4j session for one request and close it afterwards.
+
+    A session wraps a single socket. Sharing one session across concurrent requests
+    causes 'read() called while another coroutine is already waiting' errors.
+    Opening a session per request is the driver's recommended pattern.
 
     Args:
         request: The incoming request.
 
-    Returns:
-        The configured graph reader.
+    Yields:
+        A graph reader backed by a fresh session.
 
     Raises:
-        HTTPException: If no graph store is configured.
+        HTTPException: If no driver is configured.
     """
-    graph = get_dependencies(request).graph
-    if graph is None:
+    from shadow_cpi.db.neo4j.repository import Neo4jSupplyChainRepository
+    from shadow_cpi.db.neo4j.session import Neo4jSessionAdapter
+
+    driver = get_dependencies(request).neo4j_driver
+    if driver is None:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Supply-chain graph data is not available because no graph store is configured",
         )
-    return graph
+    async with driver.session() as session:
+        yield Neo4jSupplyChainRepository(Neo4jSessionAdapter(session))
+
+
+async def require_graph(request: Request) -> AsyncIterator[SupplyChainReader]:
+    """Yield a fresh per-request graph reader.
+
+    FastAPI resolves this as a generator dependency via ``Depends(require_graph)``.
+
+    Args:
+        request: The incoming request.
+
+    Yields:
+        A graph reader backed by its own Neo4j session.
+    """
+    async with _graph_session(request) as graph:
+        yield graph
 
 
 def require_healer(request: Request) -> CollectorHealer:

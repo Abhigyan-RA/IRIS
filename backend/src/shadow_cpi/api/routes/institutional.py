@@ -79,6 +79,9 @@ class HoldingEntry(BaseModel):
         delta_pct: That change as a percentage of the previous quarter's holding.
         quarter_end: Quarter the disclosure covers.
         source_url: Filing the numbers came from.
+        sector: GICS sector from WhaleWisdom enrichment, when available.
+        rank: Portfolio rank from WhaleWisdom enrichment, when available.
+        previous_pct_portfolio: Prior quarter portfolio weight, when available.
     """
 
     stock_ticker: str
@@ -89,6 +92,9 @@ class HoldingEntry(BaseModel):
     delta_pct: Decimal | None
     quarter_end: date
     source_url: str | None
+    sector: str | None = None
+    rank: int | None = None
+    previous_pct_portfolio: Decimal | None = None
 
 
 class FilerHoldingsResponse(BaseModel):
@@ -191,22 +197,23 @@ async def read_holders(
 )
 async def read_filer_holdings(
     holdings: Annotated[HoldingsReader, Depends(require_holdings)],
+    institutional: Annotated[InstitutionalIntelligenceReader, Depends(require_institutional)],
     filer_cik: Annotated[str, Path(min_length=1, max_length=20)],
     quarter_end: Annotated[date | None, Query()] = None,
 ) -> FilerHoldingsResponse:
-    """Return one fund's reported positions.
+    """Return one fund's reported positions, enriched with sector and rank.
 
     Args:
         holdings: Holdings store to read from.
+        institutional: Enrichment store for sector and rank data.
         filer_cik: The fund's identifier, in any of the forms it is written in.
         quarter_end: Restrict to one quarter, or omit for every quarter held.
 
     Returns:
-        The positions, largest first.
+        The positions, largest first, with sector and rank joined from enrichments.
 
     Raises:
-        HTTPException: If the identifier is not a valid fund identifier. Rejecting
-            it here means the request never reaches the database.
+        HTTPException: If the identifier is not a valid fund identifier.
     """
     try:
         normalized = normalize_cik(filer_cik)
@@ -218,6 +225,24 @@ async def read_filer_holdings(
 
     rows = await holdings.holdings_of_filer(filer_cik, quarter_end)
     ordered = sorted(rows, key=_by_size, reverse=True)
+
+    # Build an enrichment lookup keyed by ticker for the relevant quarter.
+    # rows is already filtered by quarter when quarter_end is supplied; when it is
+    # not, derive the newest quarter from the returned rows without passing None to
+    # max(), which mypy rejects as an incompatible default type.
+    if quarter_end:
+        effective_quarter: date | None = quarter_end
+    else:
+        quarters = [r.quarter_end for r in rows]
+        effective_quarter = max(quarters) if quarters else None
+    all_enrichments = await institutional.latest_holding_enrichments()
+    enrichment_map = {
+        e.stock_ticker: e
+        for e in all_enrichments
+        if e.filer_cik == normalized
+        and (effective_quarter is None or e.quarter_end == effective_quarter)
+    }
+
     return FilerHoldingsResponse(
         filer_cik=normalized,
         filer_name=ordered[0].filer_name if ordered else None,
@@ -231,6 +256,21 @@ async def read_filer_holdings(
                 delta_pct=_delta_pct(row),
                 quarter_end=row.quarter_end,
                 source_url=row.source_url,
+                sector=(
+                    enrichment_map[row.stock_ticker].sector
+                    if row.stock_ticker in enrichment_map
+                    else None
+                ),
+                rank=(
+                    enrichment_map[row.stock_ticker].rank
+                    if row.stock_ticker in enrichment_map
+                    else None
+                ),
+                previous_pct_portfolio=(
+                    enrichment_map[row.stock_ticker].previous_pct_portfolio
+                    if row.stock_ticker in enrichment_map
+                    else None
+                ),
             )
             for row in ordered
         ],
@@ -248,6 +288,7 @@ class FundEnrichmentEntry(BaseModel):
     holdings_count: int | None
     portfolio_turnover_pct: Decimal | None
     whale_score: Decimal | None
+    net_share_change: int | None
     source_name: str
     source_url: str
     observed_at: datetime
@@ -350,7 +391,15 @@ _COVERAGE_NOTE = (
 )
 
 
-def _fund_enrichment(snapshot: InstitutionalFundSnapshot) -> FundEnrichmentEntry:
+def _fund_enrichment(
+    snapshot: InstitutionalFundSnapshot,
+    enrichments: list[InstitutionalHoldingEnrichment],
+) -> FundEnrichmentEntry:
+    net = sum(
+        int(e.reported_pct_change_shares)
+        for e in enrichments
+        if e.reported_pct_change_shares is not None
+    )
     return FundEnrichmentEntry(
         report_period=snapshot.report_period,
         filing_date=snapshot.filing_date,
@@ -360,6 +409,7 @@ def _fund_enrichment(snapshot: InstitutionalFundSnapshot) -> FundEnrichmentEntry
         holdings_count=snapshot.holdings_count,
         portfolio_turnover_pct=snapshot.portfolio_turnover_pct,
         whale_score=snapshot.whale_score,
+        net_share_change=net if enrichments else None,
         source_name=snapshot.source_name,
         source_url=snapshot.source_url,
         observed_at=snapshot.observed_at,
@@ -424,6 +474,11 @@ async def read_institutional_overview(
         stock_rows.setdefault(row.stock_ticker, []).append(row)
         official_positions.add((row.filer_cik, row.stock_ticker))
 
+    # Group enrichments by fund so net_share_change can be computed per fund.
+    enrichments_by_fund: dict[str, list[InstitutionalHoldingEnrichment]] = {}
+    for enr in matching_enrichments.values():
+        enrichments_by_fund.setdefault(enr.filer_cik, []).append(enr)
+
     funds = [
         FundSummaryEntry(
             filer_name=rows[0].filer_name,
@@ -434,7 +489,12 @@ async def read_institutional_overview(
             ),
             source_url=rows[0].source_url,
             enrichment=(
-                _fund_enrichment(matching_snapshots[cik]) if cik in matching_snapshots else None
+                _fund_enrichment(
+                    matching_snapshots[cik],
+                    enrichments_by_fund.get(cik, []),
+                )
+                if cik in matching_snapshots
+                else None
             ),
         )
         for cik, rows in fund_rows.items()

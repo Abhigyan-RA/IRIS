@@ -20,7 +20,6 @@ from decimal import Decimal
 
 from shadow_cpi.ai.prompts import COPILOT_SYSTEM, COPILOT_USER
 from shadow_cpi.ai.protocols import TextModel
-from shadow_cpi.api.dependencies import SupplyChainReader
 from shadow_cpi.db.protocols import HoldingsReader, PriceReader
 from shadow_cpi.shared import CommodityPrice, InstitutionalHolding, Sector
 
@@ -73,7 +72,7 @@ class GroundedCopilot:
         model: TextModel,
         prices: PriceReader | None = None,
         holdings: HoldingsReader | None = None,
-        graph: SupplyChainReader | None = None,
+        neo4j_driver: object | None = None,
     ) -> None:
         """Create the copilot.
 
@@ -81,12 +80,13 @@ class GroundedCopilot:
             model: The model to ask.
             prices: Price store to retrieve from, if configured.
             holdings: Holdings store to retrieve from, if configured.
-            graph: Graph store to retrieve from, if configured.
+            neo4j_driver: Neo4j async driver. A fresh session is opened per ask()
+                call so this never shares a socket with an HTTP request handler.
         """
         self._model = model
         self._prices = prices
         self._holdings = holdings
-        self._graph = graph
+        self._neo4j_driver = neo4j_driver
 
     async def ask(self, question: str) -> CopilotAnswer:
         """Answer a question from stored data.
@@ -195,11 +195,19 @@ class GroundedCopilot:
         Returns:
             One line per relationship found.
         """
-        if self._graph is None or not prices:
+        if self._neo4j_driver is None or not prices:
             return []
 
+        from neo4j import AsyncDriver
+
+        from shadow_cpi.db.neo4j.repository import Neo4jSupplyChainRepository
+        from shadow_cpi.db.neo4j.session import Neo4jSessionAdapter
+
         commodity = prices[-1].entity_name
-        links = await self._graph.ripple_effect(commodity)
+        driver: AsyncDriver = self._neo4j_driver  # type: ignore[assignment]
+        async with driver.session() as session:
+            graph = Neo4jSupplyChainRepository(Neo4jSessionAdapter(session))
+            links = await graph.ripple_effect(commodity)
         return [f"{link.source} {link.relationship} {link.target}" for link in links]
 
 

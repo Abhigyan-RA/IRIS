@@ -103,6 +103,27 @@ export const holdersSchema = z.object({
   ),
 });
 
+/** One fund's full reported portfolio. */
+export const filerHoldingsSchema = z.object({
+  filer_cik: z.string(),
+  filer_name: z.string().nullable(),
+  holdings: z.array(
+    z.object({
+      stock_ticker: z.string(),
+      shares_held: z.number(),
+      market_value_usd: z.string().nullable(),
+      pct_portfolio: z.string().nullable(),
+      shares_change_qoq: z.number().nullable(),
+      delta_pct: z.string().nullable(),
+      quarter_end: z.string(),
+      source_url: z.string().nullable(),
+      sector: z.string().nullable(),
+      rank: z.number().int().nullable(),
+      previous_pct_portfolio: z.string().nullable(),
+    }),
+  ),
+});
+
 export const institutionalOverviewSchema = z.object({
   quarter_end: z.string().nullable(),
   total_funds: z.number().int().nonnegative(),
@@ -126,6 +147,7 @@ export const institutionalOverviewSchema = z.object({
           holdings_count: z.number().int().nonnegative().nullable(),
           portfolio_turnover_pct: z.string().nullable(),
           whale_score: z.string().nullable(),
+          net_share_change: z.number().int().nullable(),
           source_name: z.string(),
           source_url: z.string(),
           observed_at: z.string(),
@@ -223,6 +245,7 @@ export type RiskMapEntry = z.infer<typeof riskMapEntrySchema>;
 export type Trend = z.infer<typeof trendSchema>;
 export type Ripple = z.infer<typeof rippleSchema>;
 export type Holders = z.infer<typeof holdersSchema>;
+export type FilerHoldings = z.infer<typeof filerHoldingsSchema>;
 export type InstitutionalOverview = z.infer<typeof institutionalOverviewSchema>;
 export type HealthFeed = z.infer<typeof healthFeedSchema>;
 export type HealthEvent = HealthFeed['events'][number];
@@ -320,6 +343,19 @@ export function getRipple(commodity: string, depth = 2): Promise<Ripple> {
  */
 export function getHolders(ticker: string): Promise<Holders> {
   return fetchFromApi(`/api/institutional/holders/${encodeURIComponent(ticker)}`, holdersSchema);
+}
+
+/**
+ * Read one fund's full reported portfolio.
+ *
+ * @param filerCik - The fund's CIK identifier.
+ * @returns The fund name and its positions, largest first.
+ */
+export function getFilerHoldings(filerCik: string): Promise<FilerHoldings> {
+  return fetchFromApi(
+    `/api/institutional/filer/${encodeURIComponent(filerCik)}/holdings`,
+    filerHoldingsSchema,
+  );
 }
 
 export function getInstitutionalOverview(): Promise<InstitutionalOverview> {

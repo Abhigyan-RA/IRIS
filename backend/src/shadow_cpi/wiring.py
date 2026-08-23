@@ -19,8 +19,6 @@ from shadow_cpi.ai.explainer import GeminiRippleExplainer
 from shadow_cpi.ai.gemini import GeminiClient
 from shadow_cpi.api.dependencies import ApiDependencies
 from shadow_cpi.config import Settings
-from shadow_cpi.db.neo4j.repository import Neo4jSupplyChainRepository
-from shadow_cpi.db.neo4j.session import Neo4jSessionAdapter
 from shadow_cpi.db.timescale.executor import ConnectionPool, PsycopgExecutor
 from shadow_cpi.db.timescale.repositories import (
     TimescaleHealthEventRepository,
@@ -69,33 +67,35 @@ async def open_dependencies(  # pragma: no cover - requires live databases
             auth=(settings.neo4j_user, settings.neo4j_password.get_secret_value()),
         )
         try:
-            async with driver.session() as session:
-                health_events = TimescaleHealthEventRepository(executor)
-                prices = TimescalePriceRepository(executor)
-                holdings = TimescaleHoldingsRepository(executor)
-                graph = Neo4jSupplyChainRepository(Neo4jSessionAdapter(session))
-                yield ApiDependencies(
+            health_events = TimescaleHealthEventRepository(executor)
+            prices = TimescalePriceRepository(executor)
+            holdings = TimescaleHoldingsRepository(executor)
+
+            # Store the driver, not a single shared session. A Neo4j session is a
+            # single socket and cannot be used by two coroutines simultaneously.
+            # require_graph() opens a fresh session per request from this driver.
+            yield ApiDependencies(
+                prices=prices,
+                holdings=holdings,
+                institutional=holdings,
+                health_events=health_events,
+                neo4j_driver=driver,
+                healer=SelfHealingStudioRunner(
+                    api=ScraperStudioClient(
+                        http=http,
+                        api_key=settings.brightdata_api_key.get_secret_value(),
+                    ),
+                    events=health_events,
+                    drafter=GeminiInstructionDrafter(model),
+                    auto_approve_repairs=settings.brightdata_auto_approve_heal,
+                ),
+                copilot=GroundedCopilot(
+                    model=model,
                     prices=prices,
                     holdings=holdings,
-                    institutional=holdings,
-                    health_events=health_events,
-                    graph=graph,
-                    healer=SelfHealingStudioRunner(
-                        api=ScraperStudioClient(
-                            http=http,
-                            api_key=settings.brightdata_api_key.get_secret_value(),
-                        ),
-                        events=health_events,
-                        drafter=GeminiInstructionDrafter(model),
-                        auto_approve_repairs=settings.brightdata_auto_approve_heal,
-                    ),
-                    copilot=GroundedCopilot(
-                        model=model,
-                        prices=prices,
-                        holdings=holdings,
-                        graph=graph,
-                    ),
-                    explainer=GeminiRippleExplainer(model),
-                )
+                    neo4j_driver=driver,
+                ),
+                explainer=GeminiRippleExplainer(model),
+            )
         finally:
             await driver.close()

@@ -242,7 +242,7 @@ def _parse_result(
                     sector=_text(item.get("sector")),
                     previous_pct_portfolio=_decimal(item.get("previous_percent_of_portfolio")),
                     rank=rank,
-                    reported_pct_change_shares=_decimal(item.get("percent_change")),
+                    reported_pct_change_shares=_decimal(item.get("change_in_shares")),
                     source_url=fund.url,
                     observed_at=observed_at,
                 )

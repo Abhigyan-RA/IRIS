@@ -262,7 +262,7 @@ def build_server(dependencies: ApiDependencies) -> FastMCP:
         Returns:
             The components and industries reached.
         """
-        graph = dependencies.graph
+        graph = dependencies.neo4j_driver
         if graph is None:
             return SupplyChainImpact(
                 found=False,
@@ -270,8 +270,13 @@ def build_server(dependencies: ApiDependencies) -> FastMCP:
                 commodity=commodity,
             )
 
+        from shadow_cpi.db.neo4j.repository import Neo4jSupplyChainRepository
+        from shadow_cpi.db.neo4j.session import Neo4jSessionAdapter
+
         depth = max(1, min(max_depth, MAX_RIPPLE_DEPTH))
-        links = await graph.ripple_effect(commodity, depth)
+        async with graph.session() as session:
+            repo = Neo4jSupplyChainRepository(Neo4jSessionAdapter(session))
+            links = await repo.ripple_effect(commodity, depth)
         industries = sorted({link.target for link in links if link.target_label == "Industry"})
         components = sorted({link.target for link in links if link.target_label == "Component"})
 
